@@ -1,0 +1,8 @@
+{
+  "plugins": [
+    {
+      "id": "demo-callout",
+      "entry": "/plugins/demo-callout/main.js"
+    }
+  ]
+}
