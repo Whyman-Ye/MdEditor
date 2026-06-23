@@ -22,6 +22,17 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+:root[data-theme='light'] {
+  --bg: #f7f9fc;
+  --panel-bg: #ffffff;
+  --text: #1f2937;
+  --muted: #6b7280;
+  --heading: #111827;
+  --border: #d6dce8;
+  --accent: #3056d3;
+  --accent-bg: rgba(48, 86, 211, 0.12);
+}
+
 * {
   box-sizing: border-box;
 }

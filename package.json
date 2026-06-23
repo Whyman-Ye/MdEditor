@@ -54,7 +54,14 @@
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "HELP.md"
+    ],
+    "extraFiles": [
+      {
+        "from": "HELP.md",
+        "to": "HELP.md"
+      }
     ],
     "extraMetadata": {
       "main": "electron/main.cjs"
