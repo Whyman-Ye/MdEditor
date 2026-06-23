@@ -1,11 +1,74 @@
 const { app, BrowserWindow, dialog, ipcMain } = require('electron')
 const fs = require('node:fs/promises')
+const fsSync = require('node:fs')
 const path = require('node:path')
 
 const isDev = Boolean(process.env.VITE_DEV_SERVER_URL)
+const markdownExtensions = new Set(['.md', '.markdown', '.txt'])
+
+let mainWindow = null
+let launchFilePath = null
+
+function isValidMarkdownFile(filePath) {
+  if (!filePath) {
+    return false
+  }
+  const extension = path.extname(filePath).toLowerCase()
+  return markdownExtensions.has(extension) && fsSync.existsSync(filePath)
+}
+
+function resolveLaunchFile(argv = process.argv) {
+  const candidates = argv
+    .slice(1)
+    .filter((entry) => entry && !entry.startsWith('-') && entry !== '.')
+
+  for (const candidate of candidates) {
+    if (candidate.toLowerCase().endsWith('.exe')) {
+      continue
+    }
+    const absolutePath = path.isAbsolute(candidate)
+      ? candidate
+      : path.resolve(process.cwd(), candidate)
+    if (isValidMarkdownFile(absolutePath)) {
+      return absolutePath
+    }
+  }
+
+  return null
+}
+
+async function readFileByPath(filePath) {
+  const content = await fs.readFile(filePath, 'utf-8')
+  return {
+    path: filePath,
+    content,
+  }
+}
+
+function focusMainWindow() {
+  if (!mainWindow) {
+    return
+  }
+  if (mainWindow.isMinimized()) {
+    mainWindow.restore()
+  }
+  mainWindow.focus()
+}
+
+async function openPathInRenderer(filePath) {
+  if (!mainWindow || !isValidMarkdownFile(filePath)) {
+    return
+  }
+  try {
+    const payload = await readFileByPath(filePath)
+    mainWindow.webContents.send('file:openFromSystem', payload)
+  } catch (error) {
+    console.error('Failed to open file from system association:', error)
+  }
+}
 
 function createWindow() {
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 1400,
     height: 900,
     minWidth: 980,
@@ -23,28 +86,17 @@ function createWindow() {
   } else {
     mainWindow.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
   }
-}
 
-function resolveLaunchFile() {
-  const args = process.argv.slice(1)
-  const candidate = args.find((entry) => entry && !entry.startsWith('-'))
-  if (!candidate) {
-    return null
-  }
+  mainWindow.on('closed', () => {
+    mainWindow = null
+  })
 
-  const absolutePath = path.isAbsolute(candidate)
-    ? candidate
-    : path.resolve(process.cwd(), candidate)
-
-  return absolutePath
-}
-
-async function readFileByPath(filePath) {
-  const content = await fs.readFile(filePath, 'utf-8')
-  return {
-    path: filePath,
-    content,
-  }
+  mainWindow.webContents.on('did-finish-load', () => {
+    if (!launchFilePath) {
+      return
+    }
+    openPathInRenderer(launchFilePath)
+  })
 }
 
 async function openMarkdownFile() {
@@ -86,8 +138,23 @@ async function saveMarkdownFile(payload) {
   return { path: filePath }
 }
 
+const gotLock = app.requestSingleInstanceLock()
+if (!gotLock) {
+  app.quit()
+}
+
+app.on('second-instance', (_, commandLine) => {
+  const filePath = resolveLaunchFile(commandLine)
+  focusMainWindow()
+  if (filePath) {
+    launchFilePath = filePath
+    openPathInRenderer(filePath)
+  }
+})
+
 app.whenReady().then(() => {
-  const launchFilePath = resolveLaunchFile()
+  launchFilePath = resolveLaunchFile(process.argv)
+
   ipcMain.handle('file:open', openMarkdownFile)
   ipcMain.handle('file:save', (_, payload) => saveMarkdownFile(payload))
   ipcMain.handle('file:openLaunch', async () => {

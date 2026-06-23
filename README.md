@@ -43,6 +43,29 @@ npm run dev:desktop
 - `dev:desktop` 会同时启动 Vite 与 Electron。
 - 进入桌面窗口后，可直接点击顶部按钮打开本地 Markdown 文件进行阅读/编辑，再保存回本地。
 
+## Windows 打包与安装（EXE + 安装程序）
+
+先安装依赖，然后执行：
+
+```bash
+npm install
+npm run dist:win
+```
+
+产物目录：`release/`
+
+- 安装包：`MdEditor Setup <version>.exe`（NSIS）
+- 可执行程序：安装后为 `MdEditor.exe`
+
+### 文件关联
+
+安装包已配置关联扩展名：
+
+- `.md`
+- `.markdown`
+
+安装后可在 Windows 中双击上述文件类型，直接用 MdEditor 打开。若 MdEditor 已在运行，会将文件发送到当前窗口打开。
+
 ## 插件目录与兼容方式
 
 插件入口清单：`public/plugins/manifest.json`

@@ -99,6 +99,17 @@ function App() {
   }, [])
 
   useEffect(() => {
+    if (!window.desktopAPI) {
+      return
+    }
+    const unsubscribe = window.desktopAPI.onSystemFileOpen((payload) => {
+      setCurrentFilePath(payload.path)
+      updateMarkdown(payload.content)
+    })
+    return unsubscribe
+  }, [])
+
+  useEffect(() => {
     if (!previewRef.current) {
       return
     }

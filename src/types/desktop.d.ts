@@ -17,6 +17,9 @@ type DesktopAPI = {
   openFile: () => Promise<OpenFileResult>
   saveFile: (payload: DesktopFilePayload) => Promise<SaveFileResult>
   openLaunchFile: () => Promise<OpenFileResult>
+  onSystemFileOpen: (
+    handler: (payload: Exclude<OpenFileResult, null>) => void,
+  ) => () => void
 }
 
 declare global {
