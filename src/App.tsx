@@ -43,6 +43,12 @@ type WorkspaceFile = {
   relativePath: string
 }
 
+type MenuCommandPayload = {
+  id?: string
+  command: string
+  payload?: unknown
+}
+
 type PdfOptions = {
   pageSize: 'a4' | 'letter'
   margin: number
@@ -240,6 +246,7 @@ function App() {
   const previewRef = useRef<HTMLDivElement>(null)
   const browserFileInputRef = useRef<HTMLInputElement>(null)
   const bridgeRef = useRef(new ObsidianCompatBridge())
+  const menuCommandHandlerRef = useRef<(payload: MenuCommandPayload) => void>(() => undefined)
 
   const isDesktopClient = Boolean(window.desktopAPI)
   const currentFileName = useMemo(() => fileNameFromPath(currentFilePath), [currentFilePath])
@@ -333,64 +340,35 @@ function App() {
     if (!window.desktopAPI) {
       return
     }
+    window.desktopAPI.ackMenuCommand('__app-ready__')
     const unsubscribe = window.desktopAPI.onMenuCommand((payload) => {
-      const command = payload.command
-      const data = payload.payload as { mode?: EditMode } | undefined
-      if (command === 'file:new') {
-        handleNewFile()
-      } else if (command === 'file:open') {
-        handleOpenFile().catch(() => undefined)
-      } else if (command === 'file:openFolder') {
-        handleOpenFolder().catch(() => undefined)
-      } else if (command === 'file:save') {
-        handleSaveFile(false).catch(() => undefined)
-      } else if (command === 'file:saveAs') {
-        handleSaveFile(true).catch(() => undefined)
-      } else if (command === 'file:exportPdf') {
-        setShowPdfDialog(true)
-      } else if (command === 'file:pageSetup') {
-        setShowPageSetupDialog(true)
-      } else if (command === 'help:open') {
-        handleOpenHelp().catch(() => undefined)
-      } else if (command === 'view:toggleRead') {
-        setMainMode((previous) => (previous === 'edit' ? 'read' : 'edit'))
-      } else if (command === 'view:toggleSidebar') {
-        setShowLeftPanel((previous) => !previous)
-      } else if (command === 'view:setEditMode' && data?.mode) {
-        setEditMode(data.mode)
-      } else if (command === 'edit:find') {
-        setShowFindReplace(true)
-      } else if (command === 'edit:replace') {
-        setShowFindReplace(true)
-      } else if (command === 'format:bold') {
-        applySourceWrapper('**', '**')
-      } else if (command === 'format:italic') {
-        applySourceWrapper('*', '*')
-      } else if (command === 'format:strike') {
-        applySourceWrapper('~~', '~~')
-      } else if (command === 'format:inlineCode') {
-        applySourceWrapper('`', '`')
-      } else if (command === 'insert:ul') {
-        insertSnippet('\n- 列表项\n')
-      } else if (command === 'insert:ol') {
-        insertSnippet('\n1. 列表项\n')
-      } else if (command === 'insert:task') {
-        insertSnippet('\n- [ ] 任务项\n')
-      } else if (command === 'insert:code') {
-        insertSnippet('\n```markdown\n代码\n```\n')
-      } else if (command === 'tools:plugins') {
-        setShowLeftPanel(true)
-        setLeftTab('plugins')
-      } else if (command === 'tools:openPluginFolder') {
-        window.desktopAPI?.openPluginFolder().catch(() => undefined)
-      } else if (command === 'tools:options') {
-        setShowOptionsDialog(true)
-      } else if (command === 'help:about') {
-        window.alert('MdEditor\n版本 0.0.0')
-      }
+      menuCommandHandlerRef.current(payload)
     })
     return unsubscribe
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  useEffect(() => {
+    const onFallbackMenuCommand = (event: Event) => {
+      const custom = event as CustomEvent<MenuCommandPayload>
+      if (custom.detail?.command) {
+        menuCommandHandlerRef.current(custom.detail)
+      }
+    }
+    window.addEventListener('__mdeditor_menu_command__', onFallbackMenuCommand)
+    return () => window.removeEventListener('__mdeditor_menu_command__', onFallbackMenuCommand)
+  }, [])
+
+  useEffect(() => {
+    ;(window as Window & { __mdeditorHandleMenuCommand?: (payload: MenuCommandPayload) => void }).__mdeditorHandleMenuCommand =
+      (payload) => {
+        if (payload?.command) {
+          menuCommandHandlerRef.current(payload)
+        }
+      }
+    return () => {
+      delete (window as Window & { __mdeditorHandleMenuCommand?: (payload: MenuCommandPayload) => void })
+        .__mdeditorHandleMenuCommand
+    }
   }, [])
 
   useEffect(() => {
@@ -808,6 +786,114 @@ function App() {
     const help = await window.desktopAPI.getHelpContent()
     setHelpMarkdown(help || fallbackHelp)
   }
+
+  function handleMenuCommand(payload: MenuCommandPayload): void {
+    console.debug('[menu-command]', payload)
+    if (payload.id && window.desktopAPI) {
+      window.desktopAPI.ackMenuCommand(payload.id)
+    }
+
+    const command = payload.command
+    const data = payload.payload as { mode?: EditMode } | undefined
+
+    if (command === 'file:new') {
+      handleNewFile()
+    } else if (command === 'file:open') {
+      handleOpenFile().catch(() => undefined)
+    } else if (command === 'file:openFolder') {
+      handleOpenFolder().catch(() => undefined)
+    } else if (command === 'file:save') {
+      handleSaveFile(false).catch(() => undefined)
+    } else if (command === 'file:saveAs') {
+      handleSaveFile(true).catch(() => undefined)
+    } else if (command === 'file:exportPdf') {
+      setShowPdfDialog(true)
+    } else if (command === 'file:pageSetup') {
+      setShowPageSetupDialog(true)
+    } else if (command === 'help:open') {
+      handleOpenHelp().catch(() => undefined)
+    } else if (command === 'help:shortcuts') {
+      setShowFindReplace(false)
+      setShowHelp(true)
+      setMainMode('read')
+      setHelpMarkdown(`${fallbackHelp}\n\n## 当前菜单快捷键\n- Ctrl+F：查找\n- Ctrl+H：替换\n- Ctrl+Shift+O：打开文件夹`)
+    } else if (command === 'view:toggleRead') {
+      setMainMode((previous) => (previous === 'edit' ? 'read' : 'edit'))
+    } else if (command === 'view:toggleSidebar') {
+      setShowLeftPanel((previous) => !previous)
+    } else if (command === 'view:toggleToolbar') {
+      setAppOptions((previous) => ({ ...previous, showToolbar: !previous.showToolbar }))
+    } else if (command === 'view:toggleStatusbar') {
+      setAppOptions((previous) => ({ ...previous, showStatusbar: !previous.showStatusbar }))
+    } else if (command === 'view:switchFileOutline') {
+      setLeftTab((previous) => (previous === 'files' ? 'outline' : 'files'))
+    } else if (command === 'view:setEditMode' && data?.mode) {
+      setEditMode(data.mode)
+    } else if (command === 'edit:find') {
+      setShowFindReplace(true)
+    } else if (command === 'edit:replace') {
+      setShowFindReplace(true)
+    } else if (command === 'edit:undo') {
+      document.execCommand('undo')
+    } else if (command === 'edit:redo') {
+      document.execCommand('redo')
+    } else if (command === 'edit:cut') {
+      document.execCommand('cut')
+    } else if (command === 'edit:copy') {
+      document.execCommand('copy')
+    } else if (command === 'edit:paste') {
+      document.execCommand('paste')
+    } else if (command === 'edit:selectAll') {
+      sourceEditorRef.current?.select()
+    } else if (command === 'format:bold') {
+      applySourceWrapper('**', '**')
+    } else if (command === 'format:italic') {
+      applySourceWrapper('*', '*')
+    } else if (command === 'format:strike') {
+      applySourceWrapper('~~', '~~')
+    } else if (command === 'format:inlineCode') {
+      applySourceWrapper('`', '`')
+    } else if (command === 'format:highlight') {
+      applySourceWrapper('==', '==')
+    } else if (command === 'format:h1') {
+      insertSnippet('\n# 标题1\n')
+    } else if (command === 'format:h2') {
+      insertSnippet('\n## 标题2\n')
+    } else if (command === 'format:h3') {
+      insertSnippet('\n### 标题3\n')
+    } else if (command === 'insert:image') {
+      insertSnippet('\n![图片描述](./image.png)\n')
+    } else if (command === 'insert:table') {
+      insertSnippet('\n| 列1 | 列2 |\n| --- | --- |\n| 内容1 | 内容2 |\n')
+    } else if (command === 'insert:link') {
+      insertSnippet('\n[链接文字](https://example.com)\n')
+    } else if (command === 'insert:ul') {
+      insertSnippet('\n- 列表项\n')
+    } else if (command === 'insert:ol') {
+      insertSnippet('\n1. 列表项\n')
+    } else if (command === 'insert:task') {
+      insertSnippet('\n- [ ] 任务项\n')
+    } else if (command === 'insert:code') {
+      insertSnippet('\n```markdown\n代码\n```\n')
+    } else if (command === 'insert:quote') {
+      insertSnippet('\n> 引用内容\n')
+    } else if (command === 'insert:hr') {
+      insertSnippet('\n---\n')
+    } else if (command === 'insert:date') {
+      insertSnippet(`\n${new Date().toLocaleString()}\n`)
+    } else if (command === 'tools:plugins') {
+      setShowLeftPanel(true)
+      setLeftTab('plugins')
+    } else if (command === 'tools:openPluginFolder') {
+      window.desktopAPI?.openPluginFolder().catch(() => undefined)
+    } else if (command === 'tools:options') {
+      setShowOptionsDialog(true)
+    } else if (command === 'help:about') {
+      window.alert('MdEditor\n版本 0.0.0')
+    }
+  }
+
+  menuCommandHandlerRef.current = handleMenuCommand
 
   function jumpToOutline(item: OutlineItem): void {
     if (mainMode === 'edit' && editMode === 'source' && sourceEditorRef.current) {

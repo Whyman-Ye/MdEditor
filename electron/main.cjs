@@ -10,6 +10,45 @@ const maxRecentFiles = 10
 let mainWindow = null
 let launchFilePath = null
 let recentFiles = []
+const pendingMenuCommandTimers = new Map()
+const menuDebugLogPath = path.join(app.getPath('userData'), 'menu-debug.log')
+
+function logMenuDebug(message) {
+  const line = `${new Date().toISOString()} ${message}\n`
+  try {
+    fsSync.appendFileSync(menuDebugLogPath, line, 'utf-8')
+  } catch {
+    // ignore logger failures
+  }
+}
+
+function observeRendererState(targetWindow, label) {
+  if (!targetWindow || targetWindow.isDestroyed()) {
+    return
+  }
+  const script = `
+    (function() {
+      try {
+        const info = {
+          href: location.href,
+          readyState: document.readyState,
+          hasDesktopAPI: !!window.desktopAPI,
+          hasAck: !!(window.desktopAPI && typeof window.desktopAPI.ackMenuCommand === 'function'),
+          hasHandler: typeof window.__mdeditorHandleMenuCommand === 'function',
+          hasRoot: !!document.getElementById('root')
+        };
+        return JSON.stringify(info);
+      } catch (error) {
+        return JSON.stringify({ error: String(error) });
+      }
+    })();
+  `
+  targetWindow.webContents.executeJavaScript(script).then((state) => {
+    logMenuDebug(`renderer-state[${label}]: ${state}`)
+  }).catch((error) => {
+    logMenuDebug(`renderer-state[${label}] error: ${String(error)}`)
+  })
+}
 
 const recentStorePath = path.join(app.getPath('userData'), 'recent-files.json')
 
@@ -170,7 +209,21 @@ function createWindow() {
     mainWindow = null
   })
 
+  mainWindow.webContents.on('did-start-loading', () => {
+    logMenuDebug('did-start-loading')
+  })
+
+  mainWindow.webContents.on('did-fail-load', (_, errorCode, errorDescription, validatedURL) => {
+    logMenuDebug(`did-fail-load code=${errorCode} desc=${errorDescription} url=${validatedURL}`)
+  })
+
+  mainWindow.webContents.on('render-process-gone', (_, details) => {
+    logMenuDebug(`render-process-gone reason=${details.reason} exitCode=${details.exitCode}`)
+  })
+
   mainWindow.webContents.on('did-finish-load', () => {
+    logMenuDebug(`did-finish-load url=${mainWindow.webContents.getURL()}`)
+    observeRendererState(mainWindow, 'did-finish-load')
     if (!launchFilePath) {
       return
     }
@@ -305,10 +358,85 @@ async function readHelpContent() {
 }
 
 function sendMenuCommand(command, payload = undefined) {
-  if (!mainWindow) {
+  const targetWindow = mainWindow && !mainWindow.isDestroyed()
+    ? mainWindow
+    : BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0]
+  if (!targetWindow) {
+    logMenuDebug(`sendMenuCommand skipped(no-window): ${command}`)
     return
   }
-  mainWindow.webContents.send('menu:command', { command, payload })
+
+  const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`
+  const message = { id, command, payload }
+  logMenuDebug(`sendMenuCommand start: ${command} id=${id}`)
+  observeRendererState(targetWindow, `before-send:${command}`)
+  targetWindow.webContents.send('menu:command', message)
+  const script = `
+    (function() {
+      const message = ${JSON.stringify(message)};
+      if (typeof window.__mdeditorHandleMenuCommand === 'function') {
+        try { window.__mdeditorHandleMenuCommand(message); } catch (_) {}
+      }
+      window.dispatchEvent(
+        new CustomEvent('__mdeditor_menu_command__', { detail: message })
+      );
+    })();
+  `
+  targetWindow.webContents.executeJavaScript(script).catch((error) => {
+    logMenuDebug(`executeJavaScript error: ${String(error)}`)
+  })
+
+  const timer = setTimeout(() => {
+    if (!pendingMenuCommandTimers.has(id)) {
+      return
+    }
+    pendingMenuCommandTimers.delete(id)
+    logMenuDebug(`menu ack timeout -> fallback: ${command} id=${id}`)
+    runMenuCommandFallback(targetWindow, message)
+  }, 160)
+  pendingMenuCommandTimers.set(id, timer)
+}
+
+function runMenuCommandFallback(targetWindow, message) {
+  if (!targetWindow || targetWindow.isDestroyed()) {
+    return
+  }
+
+  const command = message?.command
+  if (!command) {
+    return
+  }
+
+  // Only keep truly native-safe editor fallbacks to avoid accelerator recursion.
+  if (command === 'edit:undo') {
+    targetWindow.webContents.undo()
+  } else if (command === 'edit:redo') {
+    targetWindow.webContents.redo()
+  } else if (command === 'edit:cut') {
+    targetWindow.webContents.cut()
+  } else if (command === 'edit:copy') {
+    targetWindow.webContents.copy()
+  } else if (command === 'edit:paste') {
+    targetWindow.webContents.paste()
+  } else if (command === 'edit:selectAll') {
+    targetWindow.webContents.selectAll()
+  }
+
+  const retryScript = `
+    (function() {
+      const message = ${JSON.stringify(message)};
+      if (typeof window.__mdeditorHandleMenuCommand === 'function') {
+        try { window.__mdeditorHandleMenuCommand(message); } catch (_) {}
+      }
+      try {
+        window.dispatchEvent(new CustomEvent('__mdeditor_menu_command__', { detail: message }));
+      } catch (_) {}
+    })();
+  `
+  targetWindow.webContents.executeJavaScript(retryScript).catch((error) => {
+    logMenuDebug(`fallback executeJavaScript error: ${String(error)}`)
+  })
+  logMenuDebug(`fallback executed: ${command}`)
 }
 
 function updateAppMenu() {
@@ -350,19 +478,38 @@ function updateAppMenu() {
     {
       label: '编辑',
       submenu: [
-        { role: 'undo', label: '撤销' },
-        { role: 'redo', label: '重做' },
+        { label: '撤销', accelerator: 'CmdOrCtrl+Z', click: () => sendMenuCommand('edit:undo') },
+        {
+          label: '重做',
+          accelerator: process.platform === 'darwin' ? 'CmdOrCtrl+Shift+Z' : 'CmdOrCtrl+Y',
+          click: () => sendMenuCommand('edit:redo'),
+        },
         { type: 'separator' },
-        { role: 'cut', label: '剪切' },
-        { role: 'copy', label: '复制' },
-        { role: 'paste', label: '粘贴' },
-        { role: 'selectAll', label: '全选' },
+        { label: '剪切', accelerator: 'CmdOrCtrl+X', click: () => sendMenuCommand('edit:cut') },
+        { label: '复制', accelerator: 'CmdOrCtrl+C', click: () => sendMenuCommand('edit:copy') },
+        { label: '粘贴', accelerator: 'CmdOrCtrl+V', click: () => sendMenuCommand('edit:paste') },
+        { label: '全选', accelerator: 'CmdOrCtrl+A', click: () => sendMenuCommand('edit:selectAll') },
         { type: 'separator' },
         { label: '查找...', accelerator: 'CmdOrCtrl+F', click: () => sendMenuCommand('edit:find') },
         {
           label: '查找并替换...',
           accelerator: 'CmdOrCtrl+H',
           click: () => sendMenuCommand('edit:replace'),
+        },
+        {
+          label: '插入',
+          submenu: [
+            { label: '图片...', click: () => sendMenuCommand('insert:image') },
+            { label: '表格...', click: () => sendMenuCommand('insert:table') },
+            { label: '链接...', click: () => sendMenuCommand('insert:link') },
+            { label: '无序列表', click: () => sendMenuCommand('insert:ul') },
+            { label: '有序列表', click: () => sendMenuCommand('insert:ol') },
+            { label: '任务列表', click: () => sendMenuCommand('insert:task') },
+            { label: '代码块', click: () => sendMenuCommand('insert:code') },
+            { label: '引用块', click: () => sendMenuCommand('insert:quote') },
+            { label: '分割线', click: () => sendMenuCommand('insert:hr') },
+            { label: '当前日期时间', click: () => sendMenuCommand('insert:date') },
+          ],
         },
       ],
     },
@@ -377,6 +524,9 @@ function updateAppMenu() {
         { label: '源代码模式', click: () => sendMenuCommand('view:setEditMode', { mode: 'source' }) },
         { type: 'separator' },
         { label: '切换侧边栏', accelerator: 'CmdOrCtrl+Shift+T', click: () => sendMenuCommand('view:toggleSidebar') },
+        { label: '显示/隐藏工具栏', click: () => sendMenuCommand('view:toggleToolbar') },
+        { label: '显示/隐藏状态栏', click: () => sendMenuCommand('view:toggleStatusbar') },
+        { label: '切换文件/大纲面板', click: () => sendMenuCommand('view:switchFileOutline') },
         { role: 'resetZoom', label: '重置缩放' },
         { role: 'zoomIn', label: '放大' },
         { role: 'zoomOut', label: '缩小' },
@@ -390,11 +540,18 @@ function updateAppMenu() {
         { label: '斜体', accelerator: 'CmdOrCtrl+I', click: () => sendMenuCommand('format:italic') },
         { label: '删除线', click: () => sendMenuCommand('format:strike') },
         { label: '行内代码', click: () => sendMenuCommand('format:inlineCode') },
+        { label: '高亮', click: () => sendMenuCommand('format:highlight') },
+        { type: 'separator' },
+        { label: 'H1', click: () => sendMenuCommand('format:h1') },
+        { label: 'H2', click: () => sendMenuCommand('format:h2') },
+        { label: 'H3', click: () => sendMenuCommand('format:h3') },
         { type: 'separator' },
         { label: '无序列表', click: () => sendMenuCommand('insert:ul') },
         { label: '有序列表', click: () => sendMenuCommand('insert:ol') },
         { label: '任务列表', click: () => sendMenuCommand('insert:task') },
         { label: '代码块', click: () => sendMenuCommand('insert:code') },
+        { label: '引用块', click: () => sendMenuCommand('insert:quote') },
+        { label: '分割线', click: () => sendMenuCommand('insert:hr') },
       ],
     },
     {
@@ -411,6 +568,7 @@ function updateAppMenu() {
       label: '帮助',
       submenu: [
         { label: '查看帮助', accelerator: 'F1', click: () => sendMenuCommand('help:open') },
+        { label: '快捷键参考', click: () => sendMenuCommand('help:shortcuts') },
         { label: '关于', click: () => sendMenuCommand('help:about') },
       ],
     },
@@ -473,6 +631,16 @@ app.whenReady().then(async () => {
     await ensurePluginsDir()
     await shell.openPath(getPluginsDir())
     return getPluginsDir()
+  })
+  ipcMain.on('menu:ack', (_, id) => {
+    const timer = pendingMenuCommandTimers.get(id)
+    if (timer) {
+      clearTimeout(timer)
+      pendingMenuCommandTimers.delete(id)
+      logMenuDebug(`menu ack received: id=${id}`)
+    } else {
+      logMenuDebug(`menu ack received(unmatched): id=${id}`)
+    }
   })
   ipcMain.handle('file:openLaunch', async () => {
     if (!launchFilePath) {

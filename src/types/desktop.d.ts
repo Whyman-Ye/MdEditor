@@ -35,6 +35,7 @@ type PluginDescriptor = {
 }
 
 type MenuCommandPayload = {
+  id?: string
   command: string
   payload?: unknown
 }
@@ -54,6 +55,7 @@ type DesktopAPI = {
   readPluginMain: (pluginId: string) => Promise<string>
   readPluginStyle: (pluginId: string) => Promise<string | null>
   openPluginFolder: () => Promise<string>
+  ackMenuCommand: (id: string) => void
   onSystemFileOpen: (
     handler: (payload: Exclude<OpenFileResult, null>) => void,
   ) => () => void
@@ -63,6 +65,7 @@ type DesktopAPI = {
 declare global {
   interface Window {
     desktopAPI?: DesktopAPI
+    __mdeditorHandleMenuCommand?: (payload: MenuCommandPayload) => void
   }
 }
 

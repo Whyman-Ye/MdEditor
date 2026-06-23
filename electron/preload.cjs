@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld('desktopAPI', {
   readPluginMain: (pluginId) => ipcRenderer.invoke('plugins:readMain', pluginId),
   readPluginStyle: (pluginId) => ipcRenderer.invoke('plugins:readStyle', pluginId),
   openPluginFolder: () => ipcRenderer.invoke('plugins:openFolder'),
+  ackMenuCommand: (id) => ipcRenderer.send('menu:ack', id),
   onSystemFileOpen: (handler) => {
     const listener = (_, payload) => handler(payload)
     ipcRenderer.on('file:openFromSystem', listener)
@@ -26,3 +27,9 @@ contextBridge.exposeInMainWorld('desktopAPI', {
     return () => ipcRenderer.removeListener('menu:command', listener)
   },
 })
+
+try {
+  ipcRenderer.send('menu:ack', '__preload-ready__')
+} catch {
+  // ignore preload readiness logging failure
+}
