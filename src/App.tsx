@@ -952,17 +952,34 @@ function App() {
         </div>
 
         {appOptions.showToolbar ? (
-          <div className="toolbar">
-            <button type="button" onClick={handleNewFile}>新建</button>
-            <button type="button" onClick={() => handleOpenFile().catch(() => undefined)}>打开</button>
-            <button type="button" onClick={() => handleOpenFolder().catch(() => undefined)}>打开文件夹</button>
-            <button type="button" onClick={() => handleSaveFile(false).catch(() => undefined)}>保存</button>
-            <button type="button" onClick={() => handleSaveFile(true).catch(() => undefined)}>另存为</button>
-            <button type="button" onClick={() => setShowFindReplace(true)}>查找/替换</button>
-            <button type="button" onClick={() => setShowPdfDialog(true)}>导出 PDF</button>
-            <button type="button" onClick={() => handleOpenHelp().catch(() => undefined)}>帮助</button>
+          <div className="toolbar icon-toolbar">
+            <button type="button" className="icon-button" title="新建" aria-label="新建" onClick={handleNewFile}>
+              <span aria-hidden="true">✚</span>
+            </button>
+            <button type="button" className="icon-button" title="打开" aria-label="打开" onClick={() => handleOpenFile().catch(() => undefined)}>
+              <span aria-hidden="true">📄</span>
+            </button>
+            <button type="button" className="icon-button" title="打开文件夹" aria-label="打开文件夹" onClick={() => handleOpenFolder().catch(() => undefined)}>
+              <span aria-hidden="true">📁</span>
+            </button>
+            <button type="button" className="icon-button" title="保存" aria-label="保存" onClick={() => handleSaveFile(false).catch(() => undefined)}>
+              <span aria-hidden="true">💾</span>
+            </button>
+            <button type="button" className="icon-button" title="另存为" aria-label="另存为" onClick={() => handleSaveFile(true).catch(() => undefined)}>
+              <span aria-hidden="true">⤓</span>
+            </button>
+            <button type="button" className="icon-button" title="查找/替换" aria-label="查找或替换" onClick={() => setShowFindReplace(true)}>
+              <span aria-hidden="true">⌕</span>
+            </button>
+            <button type="button" className="icon-button" title="导出 PDF" aria-label="导出PDF" onClick={() => setShowPdfDialog(true)}>
+              <span aria-hidden="true">⎘</span>
+            </button>
+            <button type="button" className="icon-button" title="帮助" aria-label="帮助" onClick={() => handleOpenHelp().catch(() => undefined)}>
+              <span aria-hidden="true">?</span>
+            </button>
           </div>
         ) : null}
+
       </header>
 
       <div className="top-controls">
