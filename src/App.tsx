@@ -187,6 +187,235 @@ function applyFindHighlights(root: HTMLElement, keyword: string, activeIndex: nu
   }
 }
 
+function openMermaidFullscreenViewer(sourceSvg: SVGSVGElement): void {
+  const overlay = document.createElement('div')
+  overlay.className = 'mermaid-viewer'
+
+  const toolbar = document.createElement('div')
+  toolbar.className = 'mermaid-viewer-toolbar'
+
+  const hint = document.createElement('div')
+  hint.className = 'mermaid-viewer-hint'
+  hint.textContent = '滚轮缩放 | 拖动平移 | 双击重置 | 点击空白关闭'
+
+  const resetBtn = document.createElement('button')
+  resetBtn.type = 'button'
+  resetBtn.className = 'mermaid-viewer-btn'
+  resetBtn.textContent = '重置'
+
+  const closeBtn = document.createElement('button')
+  closeBtn.type = 'button'
+  closeBtn.className = 'mermaid-viewer-btn'
+  closeBtn.textContent = '关闭'
+
+  toolbar.appendChild(hint)
+  toolbar.appendChild(resetBtn)
+  toolbar.appendChild(closeBtn)
+
+  const stage = document.createElement('div')
+  stage.className = 'mermaid-viewer-stage'
+  const canvas = document.createElement('div')
+  canvas.className = 'mermaid-viewer-canvas'
+  const svg = sourceSvg.cloneNode(true) as SVGSVGElement
+  svg.classList.add('mermaid-viewer-svg')
+  canvas.appendChild(svg)
+  stage.appendChild(canvas)
+
+  overlay.appendChild(toolbar)
+  overlay.appendChild(stage)
+  document.body.appendChild(overlay)
+  document.body.classList.add('mermaid-viewer-open')
+
+  const parseSvgViewBox = () => {
+    const vb = (svg.getAttribute('viewBox') || '').trim().split(/\s+/).map(Number)
+    if (vb.length === 4 && vb.every((n) => Number.isFinite(n)) && vb[2] > 0 && vb[3] > 0) {
+      return { x: vb[0], y: vb[1], width: vb[2], height: vb[3] }
+    }
+    return null
+  }
+
+  const parseLength = (value: string | null): number | null => {
+    if (!value) {
+      return null
+    }
+    const parsed = Number.parseFloat(value)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+  }
+
+  const resolveSvgSize = () => {
+    const vb = parseSvgViewBox()
+    if (vb) {
+      return { width: vb.width, height: vb.height }
+    }
+    const width = parseLength(svg.getAttribute('width'))
+    const height = parseLength(svg.getAttribute('height'))
+    if (width && height) {
+      return { width, height }
+    }
+    try {
+      const box = svg.getBBox()
+      if (box.width > 0 && box.height > 0) {
+        return { width: box.width, height: box.height }
+      }
+    } catch {
+      // ignore and fallback below
+    }
+    return { width: 1000, height: 800 }
+  }
+
+  const intrinsic = resolveSvgSize()
+  svg.setAttribute('preserveAspectRatio', 'xMidYMid meet')
+  svg.style.width = `${intrinsic.width}px`
+  svg.style.height = `${intrinsic.height}px`
+
+  let scale = 1
+  let minScale = 0.05
+  let maxScale = 10
+  let translateX = 0
+  let translateY = 0
+
+  let isDragging = false
+  let hasDragged = false
+  let dragStartX = 0
+  let dragStartY = 0
+  let dragStartTranslateX = 0
+  let dragStartTranslateY = 0
+
+  const applyTransform = () => {
+    canvas.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`
+  }
+
+  const resetTransform = () => {
+    const stageWidth = Math.max(1, stage.clientWidth)
+    const stageHeight = Math.max(1, stage.clientHeight)
+    const padding = 24
+    const fitScale = Math.min(
+      (stageWidth - padding * 2) / intrinsic.width,
+      (stageHeight - padding * 2) / intrinsic.height,
+    )
+    const safeFitScale = Number.isFinite(fitScale) && fitScale > 0 ? fitScale : 1
+    scale = safeFitScale
+    minScale = Math.max(safeFitScale * 0.25, 0.05)
+    maxScale = Math.max(safeFitScale * 20, 10)
+    translateX = (stageWidth - intrinsic.width * scale) / 2
+    translateY = (stageHeight - intrinsic.height * scale) / 2
+    applyTransform()
+  }
+
+  const onWheel = (event: WheelEvent) => {
+    event.preventDefault()
+    const rect = stage.getBoundingClientRect()
+    const cursorX = event.clientX - rect.left
+    const cursorY = event.clientY - rect.top
+    const factor = event.deltaY < 0 ? 1.12 : 1 / 1.12
+    const nextScale = Math.min(maxScale, Math.max(minScale, scale * factor))
+    if (Math.abs(nextScale - scale) < 0.0001) {
+      return
+    }
+    const localX = (cursorX - translateX) / scale
+    const localY = (cursorY - translateY) / scale
+    scale = nextScale
+    translateX = cursorX - localX * scale
+    translateY = cursorY - localY * scale
+    applyTransform()
+  }
+
+  const onMouseDown = (event: MouseEvent) => {
+    if (event.button !== 0) {
+      return
+    }
+    isDragging = true
+    hasDragged = false
+    dragStartX = event.clientX
+    dragStartY = event.clientY
+    dragStartTranslateX = translateX
+    dragStartTranslateY = translateY
+    stage.classList.add('is-dragging')
+  }
+
+  const onMouseMove = (event: MouseEvent) => {
+    if (!isDragging) {
+      return
+    }
+    const dx = event.clientX - dragStartX
+    const dy = event.clientY - dragStartY
+    if (!hasDragged && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
+      hasDragged = true
+    }
+    translateX = dragStartTranslateX + dx
+    translateY = dragStartTranslateY + dy
+    applyTransform()
+  }
+
+  const onMouseUp = () => {
+    if (!isDragging) {
+      return
+    }
+    isDragging = false
+    stage.classList.remove('is-dragging')
+  }
+
+  const closeViewer = () => {
+    stage.removeEventListener('wheel', onWheel)
+    stage.removeEventListener('mousedown', onMouseDown)
+    stage.removeEventListener('dblclick', resetTransform)
+    document.removeEventListener('mousemove', onMouseMove)
+    document.removeEventListener('mouseup', onMouseUp)
+    document.removeEventListener('keydown', onKeydown)
+    window.removeEventListener('resize', resetTransform)
+    document.removeEventListener('fullscreenchange', onFullscreenChange)
+    resetBtn.removeEventListener('click', resetTransform)
+    closeBtn.removeEventListener('click', closeViewer)
+    overlay.removeEventListener('click', onOverlayClick)
+    overlay.remove()
+    document.body.classList.remove('mermaid-viewer-open')
+    if (document.fullscreenElement === overlay) {
+      void document.exitFullscreen?.().catch(() => {
+        // ignore fullscreen exit failure
+      })
+    }
+  }
+
+  const onOverlayClick = (event: MouseEvent) => {
+    if (hasDragged) {
+      hasDragged = false
+      return
+    }
+    if (event.target === overlay || event.target === stage) {
+      closeViewer()
+    }
+  }
+
+  const onKeydown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      closeViewer()
+    }
+  }
+
+  const onFullscreenChange = () => {
+    if (document.fullscreenElement === overlay) {
+      resetTransform()
+    }
+  }
+
+  stage.addEventListener('wheel', onWheel, { passive: false })
+  stage.addEventListener('mousedown', onMouseDown)
+  stage.addEventListener('dblclick', resetTransform)
+  document.addEventListener('mousemove', onMouseMove)
+  document.addEventListener('mouseup', onMouseUp)
+  document.addEventListener('keydown', onKeydown)
+  window.addEventListener('resize', resetTransform)
+  document.addEventListener('fullscreenchange', onFullscreenChange)
+  resetBtn.addEventListener('click', resetTransform)
+  closeBtn.addEventListener('click', closeViewer)
+  overlay.addEventListener('click', onOverlayClick)
+  requestAnimationFrame(resetTransform)
+
+  void overlay.requestFullscreen?.().catch(() => {
+    // ignore fullscreen request failure and keep overlay mode
+  })
+}
+
 function App() {
   const [mainMode, setMainMode] = useState<MainMode>('read')
   const [editMode, setEditMode] = useState<EditMode>('source')
@@ -445,6 +674,20 @@ function App() {
           node.removeAttribute('data-processed')
         }
         await mermaid.run({ nodes })
+        for (const node of nodes) {
+          const svg = node.querySelector('svg')
+          if (!svg) {
+            continue
+          }
+          const host = node as HTMLElement
+          host.classList.add('mermaid-interactive')
+          host.title = '单击全屏查看'
+          host.onclick = (event) => {
+            event.preventDefault()
+            event.stopPropagation()
+            openMermaidFullscreenViewer(svg)
+          }
+        }
       } catch (error) {
         console.error('Mermaid render failed:', error)
       }
