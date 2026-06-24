@@ -158,7 +158,7 @@ export async function loadPlugins(
       }
 
       const instance = new module.default(bridge)
-      instance.onload()
+      await Promise.resolve(instance.onload())
       loaded.push(plugin.id)
     } catch (error) {
       console.error(`Failed to load plugin "${plugin.id}":`, error)

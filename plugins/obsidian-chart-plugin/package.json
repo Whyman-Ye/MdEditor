@@ -1,0 +1,17 @@
+{
+  "name": "obsidian-chart-plugin",
+  "version": "1.0.6",
+  "description": "Chart plugin for Obsidian",
+  "main": "main.js",
+  "scripts": {
+    "install-deps": "npm install"
+  },
+  "devDependencies": {
+    "chart.js": "^4.4.0",
+    "chartjs-plugin-datalabels": "^2.0.0"
+  },
+  "dependencies": {
+    "chart.js": "^4.4.0",
+    "chartjs-plugin-datalabels": "^2.0.0"
+  }
+}

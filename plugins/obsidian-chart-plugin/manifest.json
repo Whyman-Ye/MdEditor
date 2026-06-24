@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-chart-plugin",
+  "name": "Chart-DSL Plugin",
+  "version": "1.0.7",
+  "minAppVersion": "0.15.0",
+  "description": "在 Obsidian 中渲染图表，支持柱状图、折线图、混合图表等",
+  "author": "Whyman",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}

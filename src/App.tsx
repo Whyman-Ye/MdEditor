@@ -2,12 +2,24 @@ import html2canvas from 'html2canvas'
 import jsPDF from 'jspdf'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import TurndownService from 'turndown'
+import Chart from 'chart.js/auto'
+import ChartDataLabels from 'chartjs-plugin-datalabels'
 import './App.css'
 import { renderMarkdownToHtml } from './core/markdown'
 import type { OutlineItem } from './core/outline'
 import { buildOutline } from './core/outline'
 import { ObsidianCompatBridge } from './plugins/obsidianCompat'
 import { listPlugins, loadPlugins, type PluginDescriptor } from './plugins/pluginManager'
+
+const chartGlobals = window as Window & {
+  Chart?: typeof Chart
+  'chartjs-plugin-datalabels'?: unknown
+}
+if (!chartGlobals.Chart) {
+  Chart.register(ChartDataLabels)
+  chartGlobals.Chart = Chart
+  chartGlobals['chartjs-plugin-datalabels'] = ChartDataLabels
+}
 
 const defaultMarkdown = `# MdEditor
 
@@ -693,7 +705,7 @@ function App() {
       }
     }
     void renderMermaid()
-  }, [renderedHtml, currentFileName, outline, findText, safeActiveFindIndex, appOptions.theme])
+  }, [renderedHtml, currentFileName, outline, findText, safeActiveFindIndex, appOptions.theme, loadedPlugins])
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null)

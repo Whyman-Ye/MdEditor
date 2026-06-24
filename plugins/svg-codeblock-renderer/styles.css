@@ -1,0 +1,98 @@
+.svg-codeblock-renderer {
+	margin: 0.75rem 0;
+}
+
+.svg-codeblock-renderer__frame {
+	position: relative;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.75rem;
+	border-radius: 10px;
+	background: var(--background-secondary);
+	overflow: hidden;
+	cursor: zoom-in;
+}
+
+.svg-codeblock-renderer__svg {
+	display: block;
+	width: min(100%, 980px);
+	max-height: min(72vh, 860px);
+	height: auto;
+	margin: 0 auto;
+}
+
+.svg-codeblock-renderer__tip {
+	position: absolute;
+	right: 10px;
+	bottom: 8px;
+	padding: 2px 8px;
+	border-radius: 8px;
+	font-size: 12px;
+	color: var(--text-muted);
+	background: color-mix(in srgb, var(--background-primary) 82%, transparent);
+	pointer-events: none;
+}
+
+.svg-codeblock-viewer-open {
+	overflow: hidden;
+}
+
+.svg-codeblock-viewer {
+	position: fixed;
+	inset: 0;
+	z-index: 9999;
+	display: flex;
+	flex-direction: column;
+	background: color-mix(in srgb, black 78%, transparent);
+}
+
+.svg-codeblock-viewer__toolbar {
+	display: flex;
+	align-items: center;
+	justify-content: flex-end;
+	gap: 8px;
+	padding: 10px 14px;
+}
+
+.svg-codeblock-viewer__hint {
+	margin-right: auto;
+	font-size: 12px;
+	color: #d5d7dd;
+}
+
+.svg-codeblock-viewer__btn {
+	border: 1px solid rgba(255, 255, 255, 0.35);
+	background: rgba(255, 255, 255, 0.08);
+	color: #fff;
+	border-radius: 6px;
+	padding: 5px 10px;
+	cursor: pointer;
+}
+
+.svg-codeblock-viewer__btn:hover {
+	background: rgba(255, 255, 255, 0.16);
+}
+
+.svg-codeblock-viewer__stage {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	overflow: hidden;
+	cursor: grab;
+	user-select: none;
+}
+
+.svg-codeblock-viewer__stage.is-dragging {
+	cursor: grabbing;
+}
+
+.svg-codeblock-viewer__svg {
+	display: block;
+	width: min(95vw, 1500px);
+	height: auto;
+	max-height: 90vh;
+	transform-origin: center center;
+	will-change: transform;
+}

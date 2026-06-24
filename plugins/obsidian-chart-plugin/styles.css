@@ -1,0 +1,28 @@
+/* 自定义样式覆盖 */
+.obsidian-chart-wrapper {
+    transition: all 0.3s ease;
+}
+
+.obsidian-chart-wrapper:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* 暗色主题适配 */
+.theme-dark .obsidian-chart-wrapper {
+    background: var(--background-primary-alt);
+}
+
+.theme-dark .obsidian-chart-title {
+    color: var(--text-accent);
+}
+
+/* 移动端适配 */
+@media (max-width: 768px) {
+    .obsidian-chart-wrapper {
+        padding: 0.5rem;
+    }
+    
+    .obsidian-chart-title {
+        font-size: 1rem;
+    }
+}

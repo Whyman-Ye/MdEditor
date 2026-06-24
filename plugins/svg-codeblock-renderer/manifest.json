@@ -1,0 +1,9 @@
+{
+	"id": "svg-codeblock-renderer",
+	"name": "SVG Codeblock Renderer",
+	"version": "0.0.1",
+	"minAppVersion": "0.15.0",
+	"description": "Render ```svg code blocks directly in Markdown preview.",
+	"author": "whyman",
+	"isDesktopOnly": false
+}
