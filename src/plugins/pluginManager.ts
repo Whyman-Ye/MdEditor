@@ -2,6 +2,7 @@ import {
   ObsidianCompatBridge,
   Plugin as ObsidianPluginBase,
   exposeObsidianGlobals,
+  getObsidianModule,
 } from './obsidianCompat'
 
 export type PluginDescriptor = {
@@ -18,6 +19,30 @@ type PluginModule = {
   default?: new (bridge: ObsidianCompatBridge) => ObsidianPluginBase
 }
 
+function importCommonJsPlugin(source: string): PluginModule {
+  const module = { exports: {} as unknown }
+  const localRequire = (specifier: string): unknown => {
+    if (specifier === 'obsidian') {
+      return getObsidianModule()
+    }
+    throw new Error(`Unsupported plugin import: ${specifier}`)
+  }
+  const runner = new Function(
+    'module',
+    'exports',
+    'require',
+    `${source}\n;return module.exports;`,
+  )
+  const exported = runner(module, module.exports, localRequire) ?? module.exports
+  if (typeof exported === 'function') {
+    return { default: exported as PluginModule['default'] }
+  }
+  if (exported && typeof exported === 'object' && 'default' in (exported as Record<string, unknown>)) {
+    return exported as PluginModule
+  }
+  return {}
+}
+
 async function importPluginModule(entry: string): Promise<PluginModule> {
   const source = entry.startsWith('plugin://') && window.desktopAPI
     ? await window.desktopAPI.readPluginMain(entry.replace('plugin://', ''))
@@ -32,6 +57,11 @@ async function importPluginModule(entry: string): Promise<PluginModule> {
   const objectUrl = URL.createObjectURL(blob)
   try {
     return (await import(/* @vite-ignore */ objectUrl)) as PluginModule
+  } catch (error) {
+    if (/require is not defined|module is not defined|exports is not defined/i.test(String(error))) {
+      return importCommonJsPlugin(source)
+    }
+    throw error
   } finally {
     URL.revokeObjectURL(objectUrl)
   }

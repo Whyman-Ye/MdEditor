@@ -1,6 +1,8 @@
 import { Component, StrictMode, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
+import 'highlight.js/styles/github-dark.css'
+import 'katex/dist/katex.min.css'
 import App from './App.tsx'
 
 type ErrorBoundaryState = {
