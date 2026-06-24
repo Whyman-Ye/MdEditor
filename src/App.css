@@ -97,7 +97,7 @@
 
 .left-panel {
   border-right: 1px solid var(--border);
-  background: #111620;
+  background: var(--panel-alt);
   display: grid;
   grid-template-rows: auto 1fr;
   min-height: 0;
@@ -165,7 +165,7 @@
 }
 
 .file-link:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--hover-bg);
 }
 
 .plugins-list p {
@@ -229,8 +229,8 @@
   right: 18px;
   top: 120px;
   width: 280px;
-  background: #111827;
-  border: 1px solid #374151;
+  background: var(--panel-elevated);
+  border: 1px solid var(--border);
   border-radius: 10px;
   padding: 10px;
   z-index: 50;
@@ -249,7 +249,7 @@
 .modal-card input,
 .modal-card select {
   width: 100%;
-  background: #0b1220;
+  background: var(--input-bg);
   color: var(--text);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -278,7 +278,7 @@
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: var(--overlay-bg);
   z-index: 60;
   display: grid;
   place-items: center;
@@ -287,8 +287,8 @@
 .modal-card {
   width: 360px;
   max-width: calc(100vw - 32px);
-  background: #101726;
-  border: 1px solid #2b364a;
+  background: var(--panel-elevated);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 14px;
   display: grid;
@@ -309,7 +309,7 @@
 .option-hint {
   margin: -2px 0 2px;
   padding: 8px 10px;
-  border: 1px solid #374151;
+  border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
   border-radius: 8px;
   background: rgba(59, 130, 246, 0.08);
@@ -356,8 +356,8 @@ mark.find-highlight.active {
   list-style: none;
   margin: 0;
   padding: 6px;
-  background: #1f2937;
-  border: 1px solid #374151;
+  background: var(--menu-bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   z-index: 20;
   min-width: 120px;
@@ -374,14 +374,14 @@ mark.find-highlight.active {
   text-align: left;
   border: none;
   border-radius: 6px;
-  color: #e5e7eb;
+  color: var(--menu-text);
   background: transparent;
   cursor: pointer;
   padding: 6px 8px;
 }
 
 .context-menu button:hover {
-  background: #374151;
+  background: var(--menu-hover);
 }
 
 .markdown-body h1,

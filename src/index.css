@@ -1,12 +1,29 @@
 :root {
   --bg: #0f1115;
   --panel-bg: #151922;
+  --panel-alt: #111620;
+  --panel-elevated: #101726;
+  --input-bg: #0b1220;
+  --hover-bg: rgba(255, 255, 255, 0.06);
+  --menu-bg: #1f2937;
+  --menu-hover: #374151;
+  --menu-text: #e5e7eb;
   --text: #d7dde7;
   --muted: #8f9aab;
   --heading: #f3f4f6;
   --border: #2a3040;
   --accent: #7c9cff;
   --accent-bg: rgba(124, 156, 255, 0.16);
+  --overlay-bg: rgba(0, 0, 0, 0.45);
+
+  /* Obsidian-like vars for third-party plugin styles */
+  --background-primary: var(--panel-bg);
+  --background-secondary: var(--panel-alt);
+  --background-modifier-error: rgba(239, 68, 68, 0.12);
+  --text-normal: var(--text);
+  --text-error: #fca5a5;
+  --interactive-accent: var(--accent);
+  --interactive-accent-hover: #93acff;
 
   font-family:
     Inter,
@@ -25,12 +42,28 @@
 :root[data-theme='light'] {
   --bg: #f7f9fc;
   --panel-bg: #ffffff;
+  --panel-alt: #f3f6fb;
+  --panel-elevated: #ffffff;
+  --input-bg: #ffffff;
+  --hover-bg: rgba(15, 23, 42, 0.06);
+  --menu-bg: #ffffff;
+  --menu-hover: #eef2f9;
+  --menu-text: #1f2937;
   --text: #1f2937;
   --muted: #6b7280;
   --heading: #111827;
   --border: #d6dce8;
   --accent: #3056d3;
   --accent-bg: rgba(48, 86, 211, 0.12);
+  --overlay-bg: rgba(15, 23, 42, 0.24);
+
+  --background-primary: var(--panel-bg);
+  --background-secondary: var(--panel-alt);
+  --background-modifier-error: rgba(220, 38, 38, 0.12);
+  --text-normal: var(--text);
+  --text-error: #b91c1c;
+  --interactive-accent: var(--accent);
+  --interactive-accent-hover: #2447b8;
 }
 
 * {
@@ -43,4 +76,9 @@ body,
   margin: 0;
   width: 100%;
   height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
 }
