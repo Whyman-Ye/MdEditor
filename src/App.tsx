@@ -58,7 +58,6 @@ type PdfOptions = {
 
 type AppOptions = {
   theme: 'dark' | 'light'
-  defaultEditMode: EditMode
   autoSaveSeconds: number
   showToolbar: boolean
   showStatusbar: boolean
@@ -189,7 +188,7 @@ function applyFindHighlights(root: HTMLElement, keyword: string, activeIndex: nu
 }
 
 function App() {
-  const [mainMode, setMainMode] = useState<MainMode>('edit')
+  const [mainMode, setMainMode] = useState<MainMode>('read')
   const [editMode, setEditMode] = useState<EditMode>('source')
   const [leftTab, setLeftTab] = useState<LeftTab>('files')
   const [showLeftPanel, setShowLeftPanel] = useState(true)
@@ -236,7 +235,6 @@ function App() {
   })
   const [appOptions, setAppOptions] = useState<AppOptions>({
     theme: 'dark',
-    defaultEditMode: 'source',
     autoSaveSeconds: 0,
     showToolbar: true,
     showStatusbar: true,
@@ -794,7 +792,6 @@ function App() {
     }
 
     const command = payload.command
-    const data = payload.payload as { mode?: EditMode } | undefined
 
     if (command === 'file:new') {
       handleNewFile()
@@ -827,8 +824,9 @@ function App() {
       setAppOptions((previous) => ({ ...previous, showStatusbar: !previous.showStatusbar }))
     } else if (command === 'view:switchFileOutline') {
       setLeftTab((previous) => (previous === 'files' ? 'outline' : 'files'))
-    } else if (command === 'view:setEditMode' && data?.mode) {
-      setEditMode(data.mode)
+    } else if (command === 'view:setEditMode') {
+      // WYSIWYG mode entry is removed from UI; keep source mode only.
+      setEditMode('source')
     } else if (command === 'edit:find') {
       setShowFindReplace(true)
     } else if (command === 'edit:replace') {
@@ -953,6 +951,14 @@ function App() {
 
         {appOptions.showToolbar ? (
           <div className="toolbar icon-toolbar">
+            <div className="segmented toolbar-modes">
+              <button type="button" className={mainMode === 'read' ? 'active' : ''} onClick={() => setMainMode('read')}>
+                阅读模式
+              </button>
+              <button type="button" className={mainMode === 'edit' ? 'active' : ''} onClick={() => setMainMode('edit')}>
+                编辑模式
+              </button>
+            </div>
             <button type="button" className="icon-button" title="新建" aria-label="新建" onClick={handleNewFile}>
               <span aria-hidden="true">✚</span>
             </button>
@@ -981,29 +987,6 @@ function App() {
         ) : null}
 
       </header>
-
-      <div className="top-controls">
-        <div className="segmented">
-          <button type="button" className={mainMode === 'edit' ? 'active' : ''} onClick={() => setMainMode('edit')}>编辑模式</button>
-          <button type="button" className={mainMode === 'read' ? 'active' : ''} onClick={() => setMainMode('read')}>阅读模式</button>
-        </div>
-        <div className="segmented">
-          <button type="button" className={editMode === 'source' ? 'active' : ''} onClick={() => setEditMode('source')} disabled={mainMode === 'read'}>源码</button>
-          <button type="button" className={editMode === 'wysiwyg' ? 'active' : ''} onClick={() => setEditMode('wysiwyg')} disabled={mainMode === 'read'}>所见渲染</button>
-        </div>
-        <label className="autosave-label">
-          自动保存(秒)
-          <input
-            type="number"
-            min={0}
-            value={appOptions.autoSaveSeconds}
-            onChange={(event) => {
-              const seconds = Number(event.target.value) || 0
-              setAppOptions((previous) => ({ ...previous, autoSaveSeconds: seconds }))
-            }}
-          />
-        </label>
-      </div>
 
       <main className={`workspace ${showLeftPanel ? '' : 'workspace-no-left'}`}>
         {showLeftPanel ? (
@@ -1096,7 +1079,7 @@ function App() {
         ) : null}
 
         <section
-          className="editor-panel"
+          className={`editor-panel ${mainMode === 'read' || showHelp ? 'editor-panel-read' : ''}`}
           onContextMenu={(event) => {
             event.preventDefault()
             setContextMenu({ x: event.clientX, y: event.clientY })
@@ -1349,21 +1332,7 @@ function App() {
               </select>
             </label>
             <label>
-              默认编辑子模式
-              <select
-                value={appOptions.defaultEditMode}
-                onChange={(event) => {
-                  const mode = event.target.value as EditMode
-                  setAppOptions((previous) => ({ ...previous, defaultEditMode: mode }))
-                  setEditMode(mode)
-                }}
-              >
-                <option value="source">源码模式</option>
-                <option value="wysiwyg">所见渲染</option>
-              </select>
-            </label>
-            <label>
-              自动保存间隔(秒)
+              自动保存间隔（秒）
               <input
                 type="number"
                 min={0}
@@ -1376,6 +1345,9 @@ function App() {
                 }
               />
             </label>
+            <p className="option-hint">
+              提示：仅对已保存到本地路径的文件生效，设置为 0 表示关闭自动保存。
+            </p>
             <label className="checkbox-row">
               <input
                 type="checkbox"
