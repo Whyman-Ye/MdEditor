@@ -414,7 +414,43 @@ function App() {
     activeMark?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 
     bridgeRef.current.runPostProcessors(previewRef.current, currentFileName)
-  }, [renderedHtml, currentFileName, outline, findText, safeActiveFindIndex])
+
+    const renderMermaid = async () => {
+      const root = previewRef.current
+      if (!root) {
+        return
+      }
+      const nodes = Array.from(root.querySelectorAll<HTMLElement>('.mermaid'))
+      if (nodes.length === 0) {
+        return
+      }
+      try {
+        const mermaid = (await import('mermaid')).default
+        mermaid.initialize({
+          startOnLoad: false,
+          securityLevel: 'strict',
+          theme: appOptions.theme === 'light' ? 'default' : 'dark',
+        })
+
+        for (const node of nodes) {
+          let source = node.dataset.mermaidSource ?? (node.textContent ?? '')
+          // Defensive cleanup: decode entities and strip any accidental HTML wrappers.
+          const htmlDecoder = document.createElement('div')
+          htmlDecoder.innerHTML = source
+          source = (htmlDecoder.textContent ?? source)
+            .replace(/\r\n?/g, '\n')
+            .trim()
+          node.dataset.mermaidSource = source
+          node.textContent = source
+          node.removeAttribute('data-processed')
+        }
+        await mermaid.run({ nodes })
+      } catch (error) {
+        console.error('Mermaid render failed:', error)
+      }
+    }
+    void renderMermaid()
+  }, [renderedHtml, currentFileName, outline, findText, safeActiveFindIndex, appOptions.theme])
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null)

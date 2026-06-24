@@ -25,6 +25,7 @@
     "marked": "^18.0.5",
     "marked-highlight": "^2.2.4",
     "marked-katex-extension": "^5.1.10",
+    "mermaid": "^11.15.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "turndown": "^7.2.4"

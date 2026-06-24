@@ -403,6 +403,12 @@ mark.find-highlight.active {
   padding: 6px 10px;
 }
 
+.markdown-body .mermaid {
+  overflow-x: auto;
+  text-align: center;
+  margin: 12px 0;
+}
+
 .obs-callout {
   border-left: 4px solid var(--accent);
   background: var(--accent-bg);
