@@ -11,6 +11,8 @@ import { buildOutline } from './core/outline'
 import { ObsidianCompatBridge } from './plugins/obsidianCompat'
 import { listPlugins, loadPlugins, type PluginDescriptor } from './plugins/pluginManager'
 
+const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.0.0'
+
 const chartGlobals = window as Window & {
   Chart?: typeof Chart
   'chartjs-plugin-datalabels'?: unknown
@@ -1178,7 +1180,7 @@ function App() {
     } else if (command === 'tools:options') {
       setShowOptionsDialog(true)
     } else if (command === 'help:about') {
-      window.alert('MdEditor\n版本 0.0.0')
+      window.alert(`MdEditor\n版本 ${APP_VERSION}`)
     }
   }
 
