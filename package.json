@@ -2,8 +2,9 @@
   "name": "mdeditor",
   "description": "Markdown editor client with local file support and Obsidian-style workflow",
   "author": "befar",
+  "license": "MIT",
   "private": true,
-  "version": "1.0.4",
+  "version": "1.0.6",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {
@@ -66,6 +67,18 @@
     ],
     "extraFiles": [
       {
+        "from": "LICENSE",
+        "to": "LICENSE"
+      },
+      {
+        "from": "NOTICE",
+        "to": "NOTICE"
+      },
+      {
+        "from": "THIRD_PARTY_LICENSES.md",
+        "to": "THIRD_PARTY_LICENSES.md"
+      },
+      {
         "from": "HELP.md",
         "to": "HELP.md"
       },
@@ -82,6 +95,7 @@
       "main": "electron/main.cjs"
     },
     "win": {
+      "icon": "build/icons/app.ico",
       "target": [
         {
           "target": "nsis",
@@ -96,7 +110,15 @@
       "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "multiLanguageInstaller": true,
+      "installerIcon": "build/icons/app.ico",
+      "uninstallerIcon": "build/icons/app.ico",
+      "installerHeaderIcon": "build/icons/app.ico",
+      "installerLanguages": [
+        "en_US",
+        "zh_CN"
+      ]
     },
     "fileAssociations": [
       {
