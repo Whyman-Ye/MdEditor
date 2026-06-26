@@ -1,0 +1,27 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="720" fill="#0f1115"/>
+  <rect x="24" y="24" width="1152" height="672" rx="14" fill="#151922" stroke="#2a3040"/>
+  <text x="52" y="70" fill="#d7dde7" font-family="Segoe UI, Arial" font-size="27">Chart + Mermaid Preview</text>
+  <rect x="52" y="96" width="520" height="560" rx="10" fill="#111620" stroke="#2a3040"/>
+  <text x="76" y="130" fill="#8f9aab" font-family="Consolas, monospace" font-size="16">```chart-dsl</text>
+  <text x="76" y="158" fill="#8f9aab" font-family="Consolas, monospace" font-size="16">type: bar</text>
+  <text x="76" y="186" fill="#8f9aab" font-family="Consolas, monospace" font-size="16">labels: [Mon, Tue, Wed, Thu]</text>
+  <text x="76" y="214" fill="#8f9aab" font-family="Consolas, monospace" font-size="16">datasets: ...</text>
+  <text x="76" y="242" fill="#8f9aab" font-family="Consolas, monospace" font-size="16">```</text>
+  <rect x="600" y="96" width="548" height="272" rx="10" fill="#111620" stroke="#2a3040"/>
+  <rect x="640" y="310" width="52" height="40" fill="#3b82f6"/>
+  <rect x="716" y="272" width="52" height="78" fill="#f97316"/>
+  <rect x="792" y="242" width="52" height="108" fill="#10b981"/>
+  <rect x="868" y="288" width="52" height="62" fill="#8b5cf6"/>
+  <text x="624" y="132" fill="#d7dde7" font-family="Segoe UI, Arial" font-size="19">chart-dsl rendered by plugin</text>
+  <rect x="600" y="384" width="548" height="272" rx="10" fill="#111620" stroke="#2a3040"/>
+  <text x="624" y="420" fill="#d7dde7" font-family="Segoe UI, Arial" font-size="19">Mermaid (click to fullscreen) </text>
+  <circle cx="720" cy="520" r="28" fill="#334155"/>
+  <circle cx="860" cy="520" r="28" fill="#334155"/>
+  <circle cx="1000" cy="520" r="28" fill="#334155"/>
+  <line x1="748" y1="520" x2="832" y2="520" stroke="#94a3b8" stroke-width="4"/>
+  <line x1="888" y1="520" x2="972" y2="520" stroke="#94a3b8" stroke-width="4"/>
+  <text x="711" y="526" fill="#e5e7eb" font-family="Segoe UI, Arial" font-size="14">A</text>
+  <text x="851" y="526" fill="#e5e7eb" font-family="Segoe UI, Arial" font-size="14">B</text>
+  <text x="992" y="526" fill="#e5e7eb" font-family="Segoe UI, Arial" font-size="14">C</text>
+</svg>

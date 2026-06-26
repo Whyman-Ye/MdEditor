@@ -3,7 +3,7 @@
   "description": "Markdown editor client with local file support and Obsidian-style workflow",
   "author": "befar",
   "private": true,
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "main": "electron/main.cjs",
   "scripts": {

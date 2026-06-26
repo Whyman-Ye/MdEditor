@@ -12,6 +12,7 @@ import { ObsidianCompatBridge } from './plugins/obsidianCompat'
 import { listPlugins, loadPlugins, type PluginDescriptor } from './plugins/pluginManager'
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.0.0'
+type AppLanguage = 'zh-CN' | 'en-US'
 
 const chartGlobals = window as Window & {
   Chart?: typeof Chart
@@ -23,7 +24,203 @@ if (!chartGlobals.Chart) {
   chartGlobals['chartjs-plugin-datalabels'] = ChartDataLabels
 }
 
-const defaultMarkdown = `# MdEditor
+function defaultLanguage(): AppLanguage {
+  if (typeof navigator !== 'undefined' && navigator.language.toLowerCase().startsWith('zh')) {
+    return 'zh-CN'
+  }
+  return 'en-US'
+}
+
+const i18n = {
+  'zh-CN': {
+    untitledFile: '未命名.md',
+    readMode: '阅读模式',
+    editMode: '编辑模式',
+    new: '新建',
+    open: '打开',
+    openFolder: '打开文件夹',
+    save: '保存',
+    saveAs: '另存为',
+    findReplace: '查找/替换',
+    exportPdf: '导出 PDF',
+    help: '帮助',
+    files: '文件',
+    outline: '大纲',
+    plugins: '插件',
+    workspace: '工作区',
+    folderNotOpen: '未打开文件夹',
+    recentFiles: '最近文件',
+    outlineTitle: '目录大纲',
+    pluginManager: '插件管理',
+    openPluginFolder: '打开插件文件夹',
+    refreshPlugins: '刷新插件列表',
+    noDescription: '无描述',
+    aboutTitle: '版本',
+    options: '选项',
+    theme: '主题',
+    language: '界面语言',
+    autoSave: '自动保存间隔（秒）',
+    autoSaveHint: '提示：仅对已保存到本地路径的文件生效，设置为 0 表示关闭自动保存。',
+    showToolbar: '显示工具栏',
+    showStatusbar: '显示状态栏',
+    close: '关闭',
+    dark: '深色',
+    light: '浅色',
+    zh: '中文',
+    en: 'English',
+    findAndReplace: '查找与替换',
+    findPlaceholder: '查找内容',
+    replacePlaceholder: '替换为',
+    result: '结果',
+    prev: '上一个',
+    next: '查找下一个',
+    replaceCurrent: '替换当前',
+    replaceAll: '全部替换',
+    pdfSettings: '导出 PDF 参数',
+    pageSize: '页面大小',
+    marginPx: '页边距(px)',
+    scale: '缩放',
+    revealAfterExport: '导出后在文件夹中显示',
+    cancel: '取消',
+    startExport: '开始导出',
+    pageSetup: '页面设置',
+    defaultPage: '默认页面',
+    defaultMarginPx: '默认边距(px)',
+    file: '文件',
+    mode: '模式',
+    helpRead: '帮助阅读',
+    lineCol: '行',
+    col: '列',
+    lineCount: '行数',
+    wordCount: '词数',
+    pluginCount: '插件',
+    mermaidHint: '滚轮缩放 | 拖动平移 | 双击重置 | 点击空白关闭',
+    mermaidReset: '重置',
+    clickFullscreen: '单击全屏查看',
+    insertImage: '插入图片',
+    insertTable: '插入表格',
+    insertLink: '插入链接',
+    unorderedList: '无序列表',
+    orderedList: '有序列表',
+    taskList: '任务列表',
+    codeBlock: '代码块',
+    quoteBlock: '引用块',
+    divider: '分割线',
+    currentDateTime: '当前日期时间',
+    bold: '加粗',
+    italic: '斜体',
+    strike: '删除线',
+    inlineCode: '行内代码',
+    copy: '复制',
+    paste: '粘贴',
+    selectAll: '全选',
+    undo: '撤销',
+    redo: '重做',
+    showInFolder: '在文件夹中显示',
+    copyFilePath: '复制文件路径',
+    print: '打印',
+    viewSource: '查看源代码',
+    findNext: '查找下一个',
+    replaceWith: '替换为',
+    pluginAuthorDivider: ' · ',
+  },
+  'en-US': {
+    untitledFile: 'Untitled.md',
+    readMode: 'Read Mode',
+    editMode: 'Edit Mode',
+    new: 'New',
+    open: 'Open',
+    openFolder: 'Open Folder',
+    save: 'Save',
+    saveAs: 'Save As',
+    findReplace: 'Find/Replace',
+    exportPdf: 'Export PDF',
+    help: 'Help',
+    files: 'Files',
+    outline: 'Outline',
+    plugins: 'Plugins',
+    workspace: 'Workspace',
+    folderNotOpen: 'No folder opened',
+    recentFiles: 'Recent Files',
+    outlineTitle: 'Outline',
+    pluginManager: 'Plugin Manager',
+    openPluginFolder: 'Open Plugin Folder',
+    refreshPlugins: 'Refresh Plugin List',
+    noDescription: 'No description',
+    aboutTitle: 'Version',
+    options: 'Options',
+    theme: 'Theme',
+    language: 'Language',
+    autoSave: 'Auto-save interval (seconds)',
+    autoSaveHint: 'Hint: works only for files saved to local path. Set 0 to disable auto-save.',
+    showToolbar: 'Show Toolbar',
+    showStatusbar: 'Show Status Bar',
+    close: 'Close',
+    dark: 'Dark',
+    light: 'Light',
+    zh: '中文',
+    en: 'English',
+    findAndReplace: 'Find and Replace',
+    findPlaceholder: 'Find text',
+    replacePlaceholder: 'Replace with',
+    result: 'Result',
+    prev: 'Previous',
+    next: 'Find Next',
+    replaceCurrent: 'Replace Current',
+    replaceAll: 'Replace All',
+    pdfSettings: 'Export PDF Settings',
+    pageSize: 'Page Size',
+    marginPx: 'Margin (px)',
+    scale: 'Scale',
+    revealAfterExport: 'Reveal in folder after export',
+    cancel: 'Cancel',
+    startExport: 'Export',
+    pageSetup: 'Page Setup',
+    defaultPage: 'Default Page',
+    defaultMarginPx: 'Default Margin (px)',
+    file: 'File',
+    mode: 'Mode',
+    helpRead: 'Help Reading',
+    lineCol: 'Line',
+    col: 'Col',
+    lineCount: 'Lines',
+    wordCount: 'Words',
+    pluginCount: 'Plugins',
+    mermaidHint: 'Wheel: Zoom | Drag: Pan | Double-click: Reset | Click empty area: Close',
+    mermaidReset: 'Reset',
+    clickFullscreen: 'Click for fullscreen',
+    insertImage: 'Insert Image',
+    insertTable: 'Insert Table',
+    insertLink: 'Insert Link',
+    unorderedList: 'Unordered List',
+    orderedList: 'Ordered List',
+    taskList: 'Task List',
+    codeBlock: 'Code Block',
+    quoteBlock: 'Quote Block',
+    divider: 'Horizontal Rule',
+    currentDateTime: 'Current Date/Time',
+    bold: 'Bold',
+    italic: 'Italic',
+    strike: 'Strikethrough',
+    inlineCode: 'Inline Code',
+    copy: 'Copy',
+    paste: 'Paste',
+    selectAll: 'Select All',
+    undo: 'Undo',
+    redo: 'Redo',
+    showInFolder: 'Show in Folder',
+    copyFilePath: 'Copy File Path',
+    print: 'Print',
+    viewSource: 'View Source',
+    findNext: 'Find Next',
+    replaceWith: 'Replace with',
+    pluginAuthorDivider: ' · ',
+  },
+} as const
+
+function buildDefaultMarkdown(language: AppLanguage): string {
+  if (language === 'zh-CN') {
+    return `# MdEditor
 
 欢迎使用 MdEditor。
 
@@ -35,8 +232,25 @@ const defaultMarkdown = `# MdEditor
 - Ctrl+E 切换阅读/编辑
 - F1 查看帮助
 `
+  }
 
-const fallbackHelp = `# HELP
+  return `# MdEditor
+
+Welcome to MdEditor.
+
+- Ctrl+N New file
+- Ctrl+O Open file
+- Ctrl+Shift+O Open folder
+- Ctrl+S Save
+- Ctrl+Shift+S Save as
+- Ctrl+E Toggle read/edit mode
+- F1 Open help
+`
+}
+
+function buildFallbackHelp(language: AppLanguage): string {
+  if (language === 'zh-CN') {
+    return `# HELP
 
 ## 快捷键
 - Ctrl+N：新建
@@ -45,6 +259,18 @@ const fallbackHelp = `# HELP
 - Ctrl+E：阅读/编辑切换
 - Ctrl+Shift+T：切换大纲
 `
+  }
+
+  return `# HELP
+
+## Shortcuts
+- Ctrl+N: New file
+- Ctrl+O: Open file
+- Ctrl+S: Save
+- Ctrl+E: Toggle read/edit mode
+- Ctrl+Shift+T: Toggle sidebar
+`
+}
 
 type MainMode = 'read' | 'edit'
 type EditMode = 'wysiwyg' | 'source'
@@ -72,6 +298,7 @@ type PdfOptions = {
 
 type AppOptions = {
   theme: 'dark' | 'light'
+  language: AppLanguage
   autoSaveSeconds: number
   showToolbar: boolean
   showStatusbar: boolean
@@ -107,11 +334,11 @@ type EditorContextAction =
 
 const turndown = new TurndownService()
 
-function fileNameFromPath(path: string | null): string {
+function fileNameFromPath(path: string | null, fallbackName = i18n[defaultLanguage()].untitledFile): string {
   if (!path) {
-    return '未命名.md'
+    return fallbackName
   }
-  return path.replace(/\\/g, '/').split('/').pop() || '未命名.md'
+  return path.replace(/\\/g, '/').split('/').pop() || fallbackName
 }
 
 function getWordsCount(content: string): number {
@@ -201,7 +428,10 @@ function applyFindHighlights(root: HTMLElement, keyword: string, activeIndex: nu
   }
 }
 
-function openMermaidFullscreenViewer(sourceSvg: SVGSVGElement): void {
+function openMermaidFullscreenViewer(
+  sourceSvg: SVGSVGElement,
+  texts: { hint: string; reset: string; close: string },
+): void {
   const overlay = document.createElement('div')
   overlay.className = 'mermaid-viewer'
 
@@ -210,17 +440,17 @@ function openMermaidFullscreenViewer(sourceSvg: SVGSVGElement): void {
 
   const hint = document.createElement('div')
   hint.className = 'mermaid-viewer-hint'
-  hint.textContent = '滚轮缩放 | 拖动平移 | 双击重置 | 点击空白关闭'
+  hint.textContent = texts.hint
 
   const resetBtn = document.createElement('button')
   resetBtn.type = 'button'
   resetBtn.className = 'mermaid-viewer-btn'
-  resetBtn.textContent = '重置'
+  resetBtn.textContent = texts.reset
 
   const closeBtn = document.createElement('button')
   closeBtn.type = 'button'
   closeBtn.className = 'mermaid-viewer-btn'
-  closeBtn.textContent = '关闭'
+  closeBtn.textContent = texts.close
 
   toolbar.appendChild(hint)
   toolbar.appendChild(resetBtn)
@@ -431,13 +661,38 @@ function openMermaidFullscreenViewer(sourceSvg: SVGSVGElement): void {
 }
 
 function App() {
+  const initialLanguage = defaultLanguage()
+  const [appOptions, setAppOptions] = useState<AppOptions>(() => {
+    const defaults: AppOptions = {
+      theme: 'dark',
+      language: initialLanguage,
+      autoSaveSeconds: 0,
+      showToolbar: true,
+      showStatusbar: true,
+    }
+    const raw = localStorage.getItem('appOptions')
+    if (!raw) {
+      return defaults
+    }
+    try {
+      const parsed = JSON.parse(raw) as Partial<AppOptions>
+      return {
+        ...defaults,
+        ...parsed,
+      }
+    } catch {
+      return defaults
+    }
+  })
+  const locale = i18n[appOptions.language]
+
   const [mainMode, setMainMode] = useState<MainMode>('read')
   const [editMode, setEditMode] = useState<EditMode>('source')
   const [leftTab, setLeftTab] = useState<LeftTab>('files')
   const [showLeftPanel, setShowLeftPanel] = useState(true)
 
-  const [markdown, setMarkdown] = useState(defaultMarkdown)
-  const [wysiwygHtml, setWysiwygHtml] = useState(() => renderMarkdownToHtml(defaultMarkdown))
+  const [markdown, setMarkdown] = useState(() => buildDefaultMarkdown(appOptions.language))
+  const [wysiwygHtml, setWysiwygHtml] = useState(() => renderMarkdownToHtml(buildDefaultMarkdown(appOptions.language)))
   const [contextMenu, setContextMenu] = useState<ContextMenuState>(null)
 
   const [currentFilePath, setCurrentFilePath] = useState<string | null>(null)
@@ -461,7 +716,7 @@ function App() {
   })
 
   const [showHelp, setShowHelp] = useState(false)
-  const [helpMarkdown, setHelpMarkdown] = useState(fallbackHelp)
+  const [helpMarkdown, setHelpMarkdown] = useState(() => buildFallbackHelp(appOptions.language))
   const [cursor, setCursor] = useState({ line: 1, column: 1 })
   const [showFindReplace, setShowFindReplace] = useState(false)
   const [findText, setFindText] = useState('')
@@ -476,13 +731,6 @@ function App() {
     fontScale: 1,
     openAfterExport: false,
   })
-  const [appOptions, setAppOptions] = useState<AppOptions>({
-    theme: 'dark',
-    autoSaveSeconds: 0,
-    showToolbar: true,
-    showStatusbar: true,
-  })
-
   const sourceEditorRef = useRef<HTMLTextAreaElement>(null)
   const previewRef = useRef<HTMLDivElement>(null)
   const browserFileInputRef = useRef<HTMLInputElement>(null)
@@ -490,7 +738,10 @@ function App() {
   const menuCommandHandlerRef = useRef<(payload: MenuCommandPayload) => void>(() => undefined)
 
   const isDesktopClient = Boolean(window.desktopAPI)
-  const currentFileName = useMemo(() => fileNameFromPath(currentFilePath), [currentFilePath])
+  const currentFileName = useMemo(
+    () => fileNameFromPath(currentFilePath, locale.untitledFile),
+    [currentFilePath, locale.untitledFile],
+  )
   const effectiveMarkdown = showHelp ? helpMarkdown : markdown
   const renderedHtml = useMemo(() => renderMarkdownToHtml(effectiveMarkdown), [effectiveMarkdown])
   const outline = useMemo(() => buildOutline(effectiveMarkdown), [effectiveMarkdown])
@@ -556,6 +807,8 @@ function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = appOptions.theme
+    document.documentElement.lang = appOptions.language
+    localStorage.setItem('appOptions', JSON.stringify(appOptions))
   }, [appOptions])
 
   useEffect(() => {
@@ -695,11 +948,15 @@ function App() {
           }
           const host = node as HTMLElement
           host.classList.add('mermaid-interactive')
-          host.title = '单击全屏查看'
+          host.title = locale.clickFullscreen
           host.onclick = (event) => {
             event.preventDefault()
             event.stopPropagation()
-            openMermaidFullscreenViewer(svg)
+            openMermaidFullscreenViewer(svg, {
+              hint: locale.mermaidHint,
+              reset: locale.mermaidReset,
+              close: locale.close,
+            })
           }
         }
       } catch (error) {
@@ -707,7 +964,20 @@ function App() {
       }
     }
     void renderMermaid()
-  }, [renderedHtml, currentFileName, outline, findText, safeActiveFindIndex, appOptions.theme, loadedPlugins])
+  }, [
+    renderedHtml,
+    currentFileName,
+    outline,
+    findText,
+    safeActiveFindIndex,
+    appOptions.theme,
+    appOptions.language,
+    loadedPlugins,
+    locale.clickFullscreen,
+    locale.mermaidHint,
+    locale.mermaidReset,
+    locale.close,
+  ])
 
   useEffect(() => {
     const closeMenu = () => setContextMenu(null)
@@ -995,7 +1265,7 @@ function App() {
   function handleNewFile(): void {
     setCurrentFilePath(null)
     setShowHelp(false)
-    updateMarkdown('# 未命名\n')
+    updateMarkdown(appOptions.language === 'zh-CN' ? '# 未命名\n' : '# Untitled\n')
   }
 
   async function handleOpenFolder(): Promise<void> {
@@ -1075,7 +1345,7 @@ function App() {
       return
     }
     const help = await window.desktopAPI.getHelpContent()
-    setHelpMarkdown(help || fallbackHelp)
+    setHelpMarkdown(help || buildFallbackHelp(appOptions.language))
   }
 
   function handleMenuCommand(payload: MenuCommandPayload): void {
@@ -1106,7 +1376,11 @@ function App() {
       setShowFindReplace(false)
       setShowHelp(true)
       setMainMode('read')
-      setHelpMarkdown(`${fallbackHelp}\n\n## 当前菜单快捷键\n- Ctrl+F：查找\n- Ctrl+H：替换\n- Ctrl+Shift+O：打开文件夹`)
+      setHelpMarkdown(
+        appOptions.language === 'zh-CN'
+          ? `${buildFallbackHelp('zh-CN')}\n\n## 当前菜单快捷键\n- Ctrl+F：查找\n- Ctrl+H：替换\n- Ctrl+Shift+O：打开文件夹`
+          : `${buildFallbackHelp('en-US')}\n\n## Current Menu Shortcuts\n- Ctrl+F: Find\n- Ctrl+H: Replace\n- Ctrl+Shift+O: Open Folder`,
+      )
     } else if (command === 'view:toggleRead') {
       setMainMode((previous) => (previous === 'edit' ? 'read' : 'edit'))
     } else if (command === 'view:toggleSidebar') {
@@ -1180,7 +1454,7 @@ function App() {
     } else if (command === 'tools:options') {
       setShowOptionsDialog(true)
     } else if (command === 'help:about') {
-      window.alert(`MdEditor\n版本 ${APP_VERSION}`)
+      window.alert(`MdEditor\n${locale.aboutTitle} ${APP_VERSION}`)
     }
   }
 
@@ -1204,34 +1478,34 @@ function App() {
   }
 
   const contextActions: Array<{ label: string; action: EditorContextAction }> = [
-    { label: '插入图片', action: 'insert-image' },
-    { label: '插入表格', action: 'insert-table' },
-    { label: '插入链接', action: 'insert-link' },
-    { label: '无序列表', action: 'insert-ul' },
-    { label: '有序列表', action: 'insert-ol' },
-    { label: '任务列表', action: 'insert-task' },
-    { label: '代码块', action: 'insert-code' },
-    { label: '引用块', action: 'insert-quote' },
-    { label: '分割线', action: 'insert-hr' },
-    { label: '当前日期时间', action: 'insert-date' },
-    { label: '加粗', action: 'fmt-bold' },
-    { label: '斜体', action: 'fmt-italic' },
-    { label: '删除线', action: 'fmt-strike' },
-    { label: '行内代码', action: 'fmt-inline-code' },
-    { label: '复制', action: 'edit-copy' },
-    { label: '粘贴', action: 'edit-paste' },
-    { label: '全选', action: 'edit-select-all' },
-    { label: '撤销', action: 'edit-undo' },
-    { label: '重做', action: 'edit-redo' },
-    { label: '在文件夹中显示', action: 'file-show-folder' },
-    { label: '复制文件路径', action: 'file-copy-path' },
+    { label: locale.insertImage, action: 'insert-image' },
+    { label: locale.insertTable, action: 'insert-table' },
+    { label: locale.insertLink, action: 'insert-link' },
+    { label: locale.unorderedList, action: 'insert-ul' },
+    { label: locale.orderedList, action: 'insert-ol' },
+    { label: locale.taskList, action: 'insert-task' },
+    { label: locale.codeBlock, action: 'insert-code' },
+    { label: locale.quoteBlock, action: 'insert-quote' },
+    { label: locale.divider, action: 'insert-hr' },
+    { label: locale.currentDateTime, action: 'insert-date' },
+    { label: locale.bold, action: 'fmt-bold' },
+    { label: locale.italic, action: 'fmt-italic' },
+    { label: locale.strike, action: 'fmt-strike' },
+    { label: locale.inlineCode, action: 'fmt-inline-code' },
+    { label: locale.copy, action: 'edit-copy' },
+    { label: locale.paste, action: 'edit-paste' },
+    { label: locale.selectAll, action: 'edit-select-all' },
+    { label: locale.undo, action: 'edit-undo' },
+    { label: locale.redo, action: 'edit-redo' },
+    { label: locale.showInFolder, action: 'file-show-folder' },
+    { label: locale.copyFilePath, action: 'file-copy-path' },
   ]
 
   const readContextActions: Array<{ label: string; action: EditorContextAction }> = [
-    { label: '复制', action: 'read-copy' },
-    { label: '全选', action: 'read-select-all' },
-    { label: '打印', action: 'read-print' },
-    { label: '查看源代码', action: 'read-view-source' },
+    { label: locale.copy, action: 'read-copy' },
+    { label: locale.selectAll, action: 'read-select-all' },
+    { label: locale.print, action: 'read-print' },
+    { label: locale.viewSource, action: 'read-view-source' },
   ]
 
   return (
@@ -1246,34 +1520,34 @@ function App() {
           <div className="toolbar icon-toolbar">
             <div className="segmented toolbar-modes">
               <button type="button" className={mainMode === 'read' ? 'active' : ''} onClick={() => setMainMode('read')}>
-                阅读模式
+                {locale.readMode}
               </button>
               <button type="button" className={mainMode === 'edit' ? 'active' : ''} onClick={() => setMainMode('edit')}>
-                编辑模式
+                {locale.editMode}
               </button>
             </div>
-            <button type="button" className="icon-button" title="新建" aria-label="新建" onClick={handleNewFile}>
+            <button type="button" className="icon-button" title={locale.new} aria-label={locale.new} onClick={handleNewFile}>
               <span aria-hidden="true">✚</span>
             </button>
-            <button type="button" className="icon-button" title="打开" aria-label="打开" onClick={() => handleOpenFile().catch(() => undefined)}>
+            <button type="button" className="icon-button" title={locale.open} aria-label={locale.open} onClick={() => handleOpenFile().catch(() => undefined)}>
               <span aria-hidden="true">📄</span>
             </button>
-            <button type="button" className="icon-button" title="打开文件夹" aria-label="打开文件夹" onClick={() => handleOpenFolder().catch(() => undefined)}>
+            <button type="button" className="icon-button" title={locale.openFolder} aria-label={locale.openFolder} onClick={() => handleOpenFolder().catch(() => undefined)}>
               <span aria-hidden="true">📁</span>
             </button>
-            <button type="button" className="icon-button" title="保存" aria-label="保存" onClick={() => handleSaveFile(false).catch(() => undefined)}>
+            <button type="button" className="icon-button" title={locale.save} aria-label={locale.save} onClick={() => handleSaveFile(false).catch(() => undefined)}>
               <span aria-hidden="true">💾</span>
             </button>
-            <button type="button" className="icon-button" title="另存为" aria-label="另存为" onClick={() => handleSaveFile(true).catch(() => undefined)}>
+            <button type="button" className="icon-button" title={locale.saveAs} aria-label={locale.saveAs} onClick={() => handleSaveFile(true).catch(() => undefined)}>
               <span aria-hidden="true">⤓</span>
             </button>
-            <button type="button" className="icon-button" title="查找/替换" aria-label="查找或替换" onClick={() => setShowFindReplace(true)}>
+            <button type="button" className="icon-button" title={locale.findReplace} aria-label={locale.findReplace} onClick={() => setShowFindReplace(true)}>
               <span aria-hidden="true">⌕</span>
             </button>
-            <button type="button" className="icon-button" title="导出 PDF" aria-label="导出PDF" onClick={() => setShowPdfDialog(true)}>
+            <button type="button" className="icon-button" title={locale.exportPdf} aria-label={locale.exportPdf} onClick={() => setShowPdfDialog(true)}>
               <span aria-hidden="true">⎘</span>
             </button>
-            <button type="button" className="icon-button" title="帮助" aria-label="帮助" onClick={() => handleOpenHelp().catch(() => undefined)}>
+            <button type="button" className="icon-button" title={locale.help} aria-label={locale.help} onClick={() => handleOpenHelp().catch(() => undefined)}>
               <span aria-hidden="true">?</span>
             </button>
           </div>
@@ -1285,15 +1559,15 @@ function App() {
         {showLeftPanel ? (
           <aside className="left-panel">
             <div className="left-tabs">
-              <button type="button" className={leftTab === 'files' ? 'active' : ''} onClick={() => setLeftTab('files')}>文件</button>
-              <button type="button" className={leftTab === 'outline' ? 'active' : ''} onClick={() => setLeftTab('outline')}>大纲</button>
-              <button type="button" className={leftTab === 'plugins' ? 'active' : ''} onClick={() => setLeftTab('plugins')}>插件</button>
+              <button type="button" className={leftTab === 'files' ? 'active' : ''} onClick={() => setLeftTab('files')}>{locale.files}</button>
+              <button type="button" className={leftTab === 'outline' ? 'active' : ''} onClick={() => setLeftTab('outline')}>{locale.outline}</button>
+              <button type="button" className={leftTab === 'plugins' ? 'active' : ''} onClick={() => setLeftTab('plugins')}>{locale.plugins}</button>
             </div>
 
             {leftTab === 'files' ? (
               <div className="panel-scroll">
-                <h3>工作区</h3>
-                <div className="path">{workspaceFolder ?? '未打开文件夹'}</div>
+                <h3>{locale.workspace}</h3>
+                <div className="path">{workspaceFolder ?? locale.folderNotOpen}</div>
                 <ul className="plain-list">
                   {workspaceFiles.map((file) => (
                     <li key={file.path}>
@@ -1303,7 +1577,7 @@ function App() {
                     </li>
                   ))}
                 </ul>
-                <h3>最近文件</h3>
+                <h3>{locale.recentFiles}</h3>
                 <ul className="plain-list">
                   {recentFiles.map((filePath) => (
                     <li key={filePath}>
@@ -1318,7 +1592,7 @@ function App() {
 
             {leftTab === 'outline' ? (
               <div className="panel-scroll">
-                <h3>目录大纲</h3>
+                <h3>{locale.outlineTitle}</h3>
                 <ul className="plain-list">
                   {outline.map((item) => (
                     <li key={item.id}>
@@ -1338,12 +1612,12 @@ function App() {
 
             {leftTab === 'plugins' ? (
               <div className="panel-scroll">
-                <h3>插件管理</h3>
+                <h3>{locale.pluginManager}</h3>
                 <button type="button" onClick={() => window.desktopAPI?.openPluginFolder().catch(() => undefined)}>
-                  打开插件文件夹
+                  {locale.openPluginFolder}
                 </button>
                 <button type="button" onClick={() => refreshPlugins().catch(() => undefined)}>
-                  刷新插件列表
+                  {locale.refreshPlugins}
                 </button>
                 <ul className="plain-list plugins-list">
                   {pluginCatalog.map((plugin) => (
@@ -1362,7 +1636,7 @@ function App() {
                         />
                         <span>{plugin.name} ({plugin.version})</span>
                       </label>
-                      <p>{plugin.author} · {plugin.description || '无描述'}</p>
+                      <p>{plugin.author}{locale.pluginAuthorDivider}{plugin.description || locale.noDescription}</p>
                     </li>
                   ))}
                 </ul>
@@ -1458,8 +1732,8 @@ function App() {
       {showFindReplace ? (
         <div className="floating-panel">
           <div className="floating-header">
-            <strong>查找与替换</strong>
-            <button type="button" onClick={() => setShowFindReplace(false)}>关闭</button>
+            <strong>{locale.findAndReplace}</strong>
+            <button type="button" onClick={() => setShowFindReplace(false)}>{locale.close}</button>
           </div>
           <input
             value={findText}
@@ -1467,22 +1741,22 @@ function App() {
               setFindText(event.target.value)
               setActiveFindIndex(0)
             }}
-            placeholder="查找内容"
+            placeholder={locale.findPlaceholder}
           />
           <div className="find-summary">
-            结果：{findIndexes.length === 0 ? '0' : `${safeActiveFindIndex + 1}/${findIndexes.length}`}
+            {locale.result}: {findIndexes.length === 0 ? '0' : `${safeActiveFindIndex + 1}/${findIndexes.length}`}
           </div>
           <input
             value={replaceText}
             onChange={(event) => setReplaceText(event.target.value)}
-            placeholder="替换为"
+            placeholder={locale.replaceWith}
             disabled={mainMode === 'read' || showHelp}
           />
           <div className="floating-actions">
-            <button type="button" onClick={findPrev}>上一个</button>
-            <button type="button" onClick={findNext}>查找下一个</button>
-            <button type="button" onClick={replaceCurrent} disabled={mainMode === 'read' || showHelp}>替换当前</button>
-            <button type="button" onClick={replaceAll} disabled={mainMode === 'read' || showHelp}>全部替换</button>
+            <button type="button" onClick={findPrev}>{locale.prev}</button>
+            <button type="button" onClick={findNext}>{locale.findNext}</button>
+            <button type="button" onClick={replaceCurrent} disabled={mainMode === 'read' || showHelp}>{locale.replaceCurrent}</button>
+            <button type="button" onClick={replaceAll} disabled={mainMode === 'read' || showHelp}>{locale.replaceAll}</button>
           </div>
         </div>
       ) : null}
@@ -1490,9 +1764,9 @@ function App() {
       {showPdfDialog ? (
         <div className="modal-backdrop" onClick={() => setShowPdfDialog(false)}>
           <div className="modal-card" onClick={(event) => event.stopPropagation()}>
-            <h3>导出 PDF 参数</h3>
+            <h3>{locale.pdfSettings}</h3>
             <label>
-              页面大小
+              {locale.pageSize}
               <select
                 value={pdfOptions.pageSize}
                 onChange={(event) =>
@@ -1507,7 +1781,7 @@ function App() {
               </select>
             </label>
             <label>
-              页边距(px)
+              {locale.marginPx}
               <input
                 type="number"
                 min={0}
@@ -1521,7 +1795,7 @@ function App() {
               />
             </label>
             <label>
-              缩放
+              {locale.scale}
               <input
                 type="number"
                 min={0.5}
@@ -1547,10 +1821,10 @@ function App() {
                   }))
                 }
               />
-              导出后在文件夹中显示
+              {locale.revealAfterExport}
             </label>
             <div className="modal-actions">
-              <button type="button" onClick={() => setShowPdfDialog(false)}>取消</button>
+              <button type="button" onClick={() => setShowPdfDialog(false)}>{locale.cancel}</button>
               <button
                 type="button"
                 onClick={() => {
@@ -1558,7 +1832,7 @@ function App() {
                   setShowPdfDialog(false)
                 }}
               >
-                开始导出
+                {locale.startExport}
               </button>
             </div>
           </div>
@@ -1568,9 +1842,9 @@ function App() {
       {showPageSetupDialog ? (
         <div className="modal-backdrop" onClick={() => setShowPageSetupDialog(false)}>
           <div className="modal-card" onClick={(event) => event.stopPropagation()}>
-            <h3>页面设置</h3>
+            <h3>{locale.pageSetup}</h3>
             <label>
-              默认页面
+              {locale.defaultPage}
               <select
                 value={pdfOptions.pageSize}
                 onChange={(event) =>
@@ -1585,7 +1859,7 @@ function App() {
               </select>
             </label>
             <label>
-              默认边距(px)
+              {locale.defaultMarginPx}
               <input
                 type="number"
                 min={0}
@@ -1599,7 +1873,7 @@ function App() {
               />
             </label>
             <div className="modal-actions">
-              <button type="button" onClick={() => setShowPageSetupDialog(false)}>关闭</button>
+              <button type="button" onClick={() => setShowPageSetupDialog(false)}>{locale.close}</button>
             </div>
           </div>
         </div>
@@ -1608,9 +1882,9 @@ function App() {
       {showOptionsDialog ? (
         <div className="modal-backdrop" onClick={() => setShowOptionsDialog(false)}>
           <div className="modal-card" onClick={(event) => event.stopPropagation()}>
-            <h3>选项</h3>
+            <h3>{locale.options}</h3>
             <label>
-              主题
+              {locale.theme}
               <select
                 value={appOptions.theme}
                 onChange={(event) =>
@@ -1620,12 +1894,27 @@ function App() {
                   }))
                 }
               >
-                <option value="dark">深色</option>
-                <option value="light">浅色</option>
+                <option value="dark">{locale.dark}</option>
+                <option value="light">{locale.light}</option>
               </select>
             </label>
             <label>
-              自动保存间隔（秒）
+              {locale.language}
+              <select
+                value={appOptions.language}
+                onChange={(event) =>
+                  setAppOptions((previous) => ({
+                    ...previous,
+                    language: event.target.value as AppLanguage,
+                  }))
+                }
+              >
+                <option value="zh-CN">{locale.zh}</option>
+                <option value="en-US">{locale.en}</option>
+              </select>
+            </label>
+            <label>
+              {locale.autoSave}
               <input
                 type="number"
                 min={0}
@@ -1639,7 +1928,7 @@ function App() {
               />
             </label>
             <p className="option-hint">
-              提示：仅对已保存到本地路径的文件生效，设置为 0 表示关闭自动保存。
+              {locale.autoSaveHint}
             </p>
             <label className="checkbox-row">
               <input
@@ -1652,7 +1941,7 @@ function App() {
                   }))
                 }
               />
-              显示工具栏
+              {locale.showToolbar}
             </label>
             <label className="checkbox-row">
               <input
@@ -1665,10 +1954,10 @@ function App() {
                   }))
                 }
               />
-              显示状态栏
+              {locale.showStatusbar}
             </label>
             <div className="modal-actions">
-              <button type="button" onClick={() => setShowOptionsDialog(false)}>关闭</button>
+              <button type="button" onClick={() => setShowOptionsDialog(false)}>{locale.close}</button>
             </div>
           </div>
         </div>
@@ -1676,11 +1965,11 @@ function App() {
 
       {appOptions.showStatusbar ? (
         <footer className="statusbar">
-          <span>文件：{currentFileName}</span>
-          <span>模式：{showHelp ? '帮助阅读' : `${mainMode}/${editMode}`}</span>
-          <span>行 {cursor.line}，列 {cursor.column}</span>
-          <span>行数 {linesCount} · 词数 {wordsCount}</span>
-          <span>插件：{loadedPlugins.length}/{pluginCatalog.length}</span>
+          <span>{locale.file}: {currentFileName}</span>
+          <span>{locale.mode}: {showHelp ? locale.helpRead : `${mainMode}/${editMode}`}</span>
+          <span>{locale.lineCol} {cursor.line}, {locale.col} {cursor.column}</span>
+          <span>{locale.lineCount} {linesCount} · {locale.wordCount} {wordsCount}</span>
+          <span>{locale.pluginCount}: {loadedPlugins.length}/{pluginCatalog.length}</span>
         </footer>
       ) : null}
 

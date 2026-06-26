@@ -1,0 +1,16 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="720" fill="#f7f9fc"/>
+  <rect x="32" y="32" width="1136" height="656" rx="14" fill="#ffffff" stroke="#d6dce8"/>
+  <text x="56" y="76" fill="#1f2937" font-family="Segoe UI, Arial" font-size="28">Plugin Manager </text>
+  <rect x="56" y="104" width="1088" height="64" rx="10" fill="#f3f6fb" stroke="#d6dce8"/>
+  <text x="84" y="144" fill="#3056d3" font-family="Segoe UI, Arial" font-size="20">Open Plugin Folder </text>
+  <rect x="56" y="192" width="1088" height="120" rx="10" fill="#ffffff" stroke="#d6dce8"/>
+  <text x="84" y="238" fill="#1f2937" font-family="Segoe UI, Arial" font-size="22">svg-codeblock-renderer (1.0.0)</text>
+  <text x="84" y="272" fill="#6b7280" font-family="Segoe UI, Arial" font-size="17">Render SVG code blocks in markdown preview </text>
+  <rect x="56" y="328" width="1088" height="120" rx="10" fill="#ffffff" stroke="#d6dce8"/>
+  <text x="84" y="374" fill="#1f2937" font-family="Segoe UI, Arial" font-size="22">obsidian-chart-plugin (1.0.x)</text>
+  <text x="84" y="408" fill="#6b7280" font-family="Segoe UI, Arial" font-size="17">Render chart-dsl with Chart.js </text>
+  <rect x="56" y="464" width="1088" height="200" rx="10" fill="#f3f6fb" stroke="#d6dce8"/>
+  <text x="84" y="504" fill="#1f2937" font-family="Segoe UI, Arial" font-size="18">Compatibility Layer </text>
+  <text x="84" y="538" fill="#6b7280" font-family="Segoe UI, Arial" font-size="16">Plugin / PluginSettingTab / Setting / MarkdownRenderChild / Notice</text>
+</svg>

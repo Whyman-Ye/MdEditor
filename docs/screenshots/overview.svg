@@ -1,0 +1,13 @@
+<svg width="1200" height="720" viewBox="0 0 1200 720" xmlns="http://www.w3.org/2000/svg">
+  <rect width="1200" height="720" fill="#0f1115"/>
+  <rect x="24" y="24" width="1152" height="56" rx="10" fill="#151922" stroke="#2a3040"/>
+  <text x="44" y="58" fill="#d7dde7" font-family="Segoe UI, Arial" font-size="22">MdEditor Bilingual UI </text>
+  <rect x="24" y="96" width="260" height="560" rx="10" fill="#151922" stroke="#2a3040"/>
+  <text x="44" y="128" fill="#8f9aab" font-family="Segoe UI, Arial" font-size="18">Files | Outline | Plugins</text>
+  <rect x="304" y="96" width="420" height="560" rx="10" fill="#151922" stroke="#2a3040"/>
+  <text x="324" y="128" fill="#8f9aab" font-family="Consolas, monospace" font-size="17"># Markdown Source</text>
+  <rect x="744" y="96" width="432" height="560" rx="10" fill="#151922" stroke="#2a3040"/>
+  <text x="764" y="128" fill="#8f9aab" font-family="Segoe UI, Arial" font-size="17">Rendered Preview</text>
+  <rect x="24" y="672" width="1152" height="24" rx="6" fill="#151922" stroke="#2a3040"/>
+  <text x="44" y="689" fill="#8f9aab" font-family="Segoe UI, Arial" font-size="13">Status Bar</text>
+</svg>
