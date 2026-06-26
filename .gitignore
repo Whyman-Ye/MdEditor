@@ -12,6 +12,11 @@ dist
 release
 dist-ssr
 *.local
+*.exe
+*.msi
+*.dmg
+*.AppImage
+*.blockmap
 
 # Editor directories and files
 .vscode/*

@@ -14,6 +14,7 @@
     "build": "tsc -b && vite build",
     "start:desktop": "electron .",
     "dist:win": "node ./bump-version.cjs && npm run build && electron-builder --win nsis",
+    "dist:win:ci": "npm run build && electron-builder --win nsis",
     "lint": "eslint .",
     "preview": "vite preview"
   },
