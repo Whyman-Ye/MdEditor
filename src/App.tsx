@@ -341,6 +341,61 @@ function fileNameFromPath(path: string | null, fallbackName = i18n[defaultLangua
   return path.replace(/\\/g, '/').split('/').pop() || fallbackName
 }
 
+function directoryFromFilePath(filePath: string): string {
+  const normalized = filePath.replace(/\\/g, '/')
+  const slashIndex = normalized.lastIndexOf('/')
+  if (slashIndex <= 0) {
+    return normalized
+  }
+  return normalized.slice(0, slashIndex)
+}
+
+function fileDirectoryToUrl(directory: string): string | null {
+  if (!directory) {
+    return null
+  }
+  const normalized = directory.replace(/\\/g, '/')
+  const prefixed = normalized.startsWith('/') ? normalized : `/${normalized}`
+  const withTrailingSlash = prefixed.endsWith('/') ? prefixed : `${prefixed}/`
+  return encodeURI(`file://${withTrailingSlash}`)
+}
+
+function resolvePreviewImageSrc(rawSrc: string, currentFilePath: string | null, isDesktopClient: boolean): string {
+  const trimmed = rawSrc.trim()
+  if (!trimmed) {
+    return rawSrc
+  }
+
+  if (
+    trimmed.startsWith('http://')
+    || trimmed.startsWith('https://')
+    || trimmed.startsWith('data:')
+    || trimmed.startsWith('blob:')
+    || trimmed.startsWith('file:')
+    || trimmed.startsWith('plugin://')
+    || trimmed.startsWith('mailto:')
+    || trimmed.startsWith('#')
+  ) {
+    return rawSrc
+  }
+
+  if (!isDesktopClient || !currentFilePath) {
+    return rawSrc
+  }
+
+  const baseDirectory = directoryFromFilePath(currentFilePath)
+  const baseUrl = fileDirectoryToUrl(baseDirectory)
+  if (!baseUrl) {
+    return rawSrc
+  }
+
+  try {
+    return new URL(trimmed, baseUrl).toString()
+  } catch {
+    return rawSrc
+  }
+}
+
 function getWordsCount(content: string): number {
   return content.trim().length === 0 ? 0 : content.trim().split(/\s+/).length
 }
@@ -905,6 +960,17 @@ function App() {
       })
     })
 
+    previewRef.current.querySelectorAll('img').forEach((image) => {
+      const source = image.getAttribute('src')
+      if (!source) {
+        return
+      }
+      const resolved = resolvePreviewImageSrc(source, currentFilePath, isDesktopClient)
+      if (resolved !== source) {
+        image.setAttribute('src', resolved)
+      }
+    })
+
     applyFindHighlights(previewRef.current, findText, safeActiveFindIndex)
     const activeMark = previewRef.current.querySelector('mark.find-highlight.active')
     activeMark?.scrollIntoView({ behavior: 'smooth', block: 'center' })
@@ -967,6 +1033,8 @@ function App() {
   }, [
     renderedHtml,
     currentFileName,
+    currentFilePath,
+    isDesktopClient,
     outline,
     findText,
     safeActiveFindIndex,
