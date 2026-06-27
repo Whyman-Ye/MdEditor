@@ -1304,25 +1304,173 @@ function App() {
   }
 
   async function exportPdf(options = pdfOptions): Promise<void> {
-    if (!previewRef.current) {
+    const preview = previewRef.current
+    if (!preview) {
       return
     }
 
-    const canvas = await html2canvas(previewRef.current, {
-      scale: Math.max(1, options.fontScale * 2),
-      backgroundColor: '#ffffff',
+    // Wait until current frame rendering and async images are stable.
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
     })
-    const imageData = canvas.toDataURL('image/png')
+    const exportHost = document.createElement('div')
+    exportHost.style.position = 'fixed'
+    exportHost.style.left = '-100000px'
+    exportHost.style.top = '0'
+    exportHost.style.width = `${preview.clientWidth}px`
+    exportHost.style.pointerEvents = 'none'
+    exportHost.style.opacity = '0'
+    exportHost.style.background = '#ffffff'
+    exportHost.style.zIndex = '-1'
+
+    const previewClone = preview.cloneNode(true) as HTMLDivElement
+    previewClone.style.overflow = 'visible'
+    previewClone.style.height = 'auto'
+    previewClone.style.maxHeight = 'none'
+    previewClone.style.border = 'none'
+    previewClone.classList.remove('preview-mini')
+    exportHost.appendChild(previewClone)
+    document.body.appendChild(exportHost)
+
+    let canvas: HTMLCanvasElement | null = null
+    try {
+      await new Promise<void>((resolve) => {
+        requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+      })
+      const cloneImages = Array.from(previewClone.querySelectorAll('img'))
+      await Promise.all(cloneImages.map((image) => (
+        image.complete
+          ? Promise.resolve()
+          : new Promise<void>((resolve) => {
+            const done = () => resolve()
+            image.addEventListener('load', done, { once: true })
+            image.addEventListener('error', done, { once: true })
+          })
+      )))
+
+      const renderWidth = Math.max(1, Math.ceil(previewClone.scrollWidth || previewClone.clientWidth))
+      const renderHeight = Math.max(1, Math.ceil(previewClone.scrollHeight || previewClone.clientHeight))
+      canvas = await html2canvas(previewClone, {
+        scale: Math.max(1, options.fontScale * 2),
+        backgroundColor: '#ffffff',
+        useCORS: true,
+        allowTaint: true,
+        width: renderWidth,
+        height: renderHeight,
+        windowWidth: renderWidth,
+        windowHeight: renderHeight,
+      })
+    } finally {
+      exportHost.remove()
+    }
+    if (!canvas) {
+      return
+    }
+
     const pdf = new jsPDF({
       orientation: 'portrait',
       unit: 'px',
       format: options.pageSize,
     })
 
-    const pageWidth = pdf.internal.pageSize.getWidth() - options.margin * 2
-    const ratio = pageWidth / canvas.width
-    const scaledHeight = canvas.height * ratio
-    pdf.addImage(imageData, 'PNG', options.margin, options.margin, pageWidth, scaledHeight)
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    const pageHeight = pdf.internal.pageSize.getHeight()
+    const contentWidth = pageWidth - options.margin * 2
+    const contentHeight = pageHeight - options.margin * 2
+    const pxPerPdfUnit = canvas.width / contentWidth
+    const pageSliceHeightPx = Math.max(1, Math.floor(contentHeight * pxPerPdfUnit))
+    const minSliceHeightPx = Math.max(1, Math.floor(pageSliceHeightPx * 0.6))
+    const breakSearchRadiusPx = Math.max(24, Math.floor(pageSliceHeightPx * 0.08))
+
+    const sourceContext = canvas.getContext('2d', { willReadFrequently: true })
+    const rowInkRatio = (rowY: number): number => {
+      if (!sourceContext || rowY < 0 || rowY >= canvas.height) {
+        return 1
+      }
+      const rowData = sourceContext.getImageData(0, rowY, canvas.width, 1).data
+      let inkPixels = 0
+      let totalPixels = 0
+      for (let i = 0; i < rowData.length; i += 16) {
+        const alpha = rowData[i + 3]
+        if (alpha < 8) {
+          continue
+        }
+        totalPixels += 1
+        const red = rowData[i]
+        const green = rowData[i + 1]
+        const blue = rowData[i + 2]
+        if (red < 245 || green < 245 || blue < 245) {
+          inkPixels += 1
+        }
+      }
+      return totalPixels === 0 ? 0 : inkPixels / totalPixels
+    }
+
+    const findBestBreakY = (startY: number, idealEndY: number, maxEndY: number): number => {
+      const minEndY = Math.min(maxEndY, startY + minSliceHeightPx)
+      let bestY = idealEndY
+      let bestScore = Number.POSITIVE_INFINITY
+      const evaluateY = (y: number) => {
+        if (y < minEndY || y > maxEndY) {
+          return
+        }
+        const distancePenalty = Math.abs(y - idealEndY) / Math.max(1, breakSearchRadiusPx) * 0.02
+        const score = rowInkRatio(y) + distancePenalty
+        if (score < bestScore) {
+          bestScore = score
+          bestY = y
+        }
+      }
+
+      evaluateY(idealEndY)
+      for (let delta = 1; delta <= breakSearchRadiusPx; delta += 1) {
+        evaluateY(idealEndY - delta)
+        evaluateY(idealEndY + delta)
+      }
+
+      // If no better blank-ish row was found, keep the original boundary.
+      return bestScore <= 0.12 ? bestY : idealEndY
+    }
+
+    let offsetY = 0
+    let pageIndex = 0
+    while (offsetY < canvas.height) {
+      const remainingHeight = canvas.height - offsetY
+      let sliceHeight = Math.min(pageSliceHeightPx, remainingHeight)
+      if (remainingHeight > pageSliceHeightPx) {
+        const idealEndY = offsetY + pageSliceHeightPx
+        const maxEndY = Math.min(canvas.height, idealEndY + breakSearchRadiusPx)
+        const breakY = findBestBreakY(offsetY, idealEndY, maxEndY)
+        sliceHeight = Math.max(minSliceHeightPx, breakY - offsetY)
+      }
+      const pageCanvas = document.createElement('canvas')
+      pageCanvas.width = canvas.width
+      pageCanvas.height = sliceHeight
+      const pageContext = pageCanvas.getContext('2d')
+      if (!pageContext) {
+        break
+      }
+      pageContext.drawImage(
+        canvas,
+        0,
+        offsetY,
+        canvas.width,
+        sliceHeight,
+        0,
+        0,
+        canvas.width,
+        sliceHeight,
+      )
+      const pageImageData = pageCanvas.toDataURL('image/png')
+      const renderedHeight = sliceHeight / pxPerPdfUnit
+      if (pageIndex > 0) {
+        pdf.addPage()
+      }
+      pdf.addImage(pageImageData, 'PNG', options.margin, options.margin, contentWidth, renderedHeight)
+      offsetY += sliceHeight
+      pageIndex += 1
+    }
+
     const output = currentFileName.replace(/\.md$/i, '.pdf')
     pdf.save(output)
     if (options.openAfterExport && window.desktopAPI && currentFilePath) {

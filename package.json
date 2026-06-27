@@ -9,8 +9,8 @@
   "main": "electron/main.cjs",
   "scripts": {
     "dev": "vite",
-    "dev:renderer": "vite --port 5173 --strictPort",
-    "dev:desktop": "concurrently -k \"npm:dev:renderer\" \"wait-on http://localhost:5173 && cross-env VITE_DEV_SERVER_URL=http://localhost:5173 electron .\"",
+    "dev:renderer": "vite --port 5174 --strictPort",
+    "dev:desktop": "concurrently -k \"npm:dev:renderer\" \"wait-on http://localhost:5174 && cross-env VITE_DEV_SERVER_URL=http://localhost:5174 electron .\"",
     "build": "tsc -b && vite build",
     "start:desktop": "electron .",
     "dist:win": "node ./bump-version.cjs && npm run build && electron-builder --win nsis",
