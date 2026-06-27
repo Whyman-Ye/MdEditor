@@ -1,4 +1,4 @@
-# MdEditor / 双语 Markdown 编辑器
+# MdEditor / Markdown 编辑器
 
 > 中文 | [English](#english)
 
