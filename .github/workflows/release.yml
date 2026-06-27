@@ -26,10 +26,13 @@ jobs:
         run: npm ci
 
       - name: Build Windows installer
-        run: npm run dist:win:ci
+        # 关键：禁止 electron-builder 自动发布，确保只产出 release/* 文件供后续步骤上传
+        run: npm run dist:win:ci -- --publish=never
 
       - name: Publish GitHub Release assets
         uses: softprops/action-gh-release@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           files: |
             release/*.exe
