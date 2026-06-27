@@ -4,6 +4,12 @@ import { marked } from 'marked'
 import { markedHighlight } from 'marked-highlight'
 import markedKatex from 'marked-katex-extension'
 
+type HighlightToken = {
+  type: 'highlight'
+  raw: string
+  text: string
+}
+
 function escapeHtml(text: string): string {
   return text
     .replaceAll('&', '&amp;')
@@ -47,6 +53,31 @@ marked.use({
       return false
     },
   },
+})
+
+marked.use({
+  extensions: [{
+    name: 'highlight',
+    level: 'inline',
+    start(src) {
+      return src.match(/==/)?.index
+    },
+    tokenizer(src) {
+      const match = /^==(?=\S)([\s\S]*?\S)==/.exec(src)
+      if (!match) {
+        return undefined
+      }
+      return {
+        type: 'highlight',
+        raw: match[0],
+        text: match[1],
+      }
+    },
+    renderer(token) {
+      const highlightToken = token as HighlightToken
+      return `<mark>${escapeHtml(highlightToken.text)}</mark>`
+    },
+  }],
 })
 
 export function renderMarkdownToHtml(markdown: string): string {
