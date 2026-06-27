@@ -24,6 +24,15 @@ type SaveFileResult = {
   path: string
 } | null
 
+type PdfExportPayload = {
+  html: string
+  cssText: string
+  outputName: string
+  pageSize: 'a4' | 'letter'
+  margin: number
+  openAfterExport: boolean
+}
+
 type PluginDescriptor = {
   id: string
   name: string
@@ -45,6 +54,7 @@ type DesktopAPI = {
   openFolder: () => Promise<OpenFolderResult>
   readFileByPath: (filePath: string) => Promise<OpenFileResult>
   saveFile: (payload: DesktopFilePayload) => Promise<SaveFileResult>
+  exportPdf: (payload: PdfExportPayload) => Promise<SaveFileResult>
   getRecentFiles: () => Promise<string[]>
   openLaunchFile: () => Promise<OpenFileResult>
   getHelpContent: () => Promise<string>

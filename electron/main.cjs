@@ -289,6 +289,94 @@ async function saveMarkdownFile(payload) {
   return { path: filePath }
 }
 
+function buildPdfDocument(payload) {
+  const html = typeof payload?.html === 'string' ? payload.html : ''
+  const cssText = typeof payload?.cssText === 'string' ? payload.cssText : ''
+  return `<!doctype html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    :root {
+      color-scheme: light;
+    }
+    body {
+      margin: 0;
+      background: #ffffff;
+      color: #111827;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.7;
+      overflow: visible;
+    }
+    .pdf-root {
+      padding: 0;
+      margin: 0;
+      width: 100%;
+      box-sizing: border-box;
+      color: #111827;
+      background: #ffffff;
+    }
+    ${cssText}
+  </style>
+</head>
+<body>
+  <div class="pdf-root markdown-body">${html}</div>
+</body>
+</html>`
+}
+
+async function exportPdfDocument(payload) {
+  const defaultName = payload?.outputName || `MdEditor-${Date.now()}.pdf`
+  const outputPath = path.join(app.getPath('documents'), defaultName)
+  const saveResult = await dialog.showSaveDialog({
+    title: '导出 PDF',
+    defaultPath: outputPath,
+    filters: [{ name: 'PDF', extensions: ['pdf'] }],
+  })
+  if (saveResult.canceled || !saveResult.filePath) {
+    return null
+  }
+
+  const marginPx = Number.isFinite(payload?.margin) ? Math.max(0, payload.margin) : 16
+  const marginInch = marginPx / 96
+  const pageSize = payload?.pageSize === 'letter' ? 'Letter' : 'A4'
+  const documentHtml = buildPdfDocument(payload)
+
+  const exportWindow = new BrowserWindow({
+    show: false,
+    webPreferences: {
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  })
+
+  try {
+    await exportWindow.loadURL(`data:text/html;charset=UTF-8,${encodeURIComponent(documentHtml)}`)
+    const pdfBuffer = await exportWindow.webContents.printToPDF({
+      printBackground: true,
+      preferCSSPageSize: true,
+      pageSize,
+      margins: {
+        top: marginInch,
+        bottom: marginInch,
+        left: marginInch,
+        right: marginInch,
+      },
+    })
+    await fs.writeFile(saveResult.filePath, pdfBuffer)
+  } finally {
+    exportWindow.destroy()
+  }
+
+  if (payload?.openAfterExport) {
+    shell.showItemInFolder(saveResult.filePath)
+  }
+
+  return { path: saveResult.filePath }
+}
+
 async function scanPlugins() {
   await ensurePluginsDir()
   const pluginDir = getPluginsDir()
@@ -599,6 +687,7 @@ app.whenReady().then(async () => {
   ipcMain.handle('file:open', openMarkdownFile)
   ipcMain.handle('file:openFolder', openFolderAsWorkspace)
   ipcMain.handle('file:save', (_, payload) => saveMarkdownFile(payload))
+  ipcMain.handle('pdf:export', (_, payload) => exportPdfDocument(payload))
   ipcMain.handle('file:readPath', (_, filePath) => readFileByPath(filePath))
   ipcMain.handle('file:getRecent', async () => recentFiles)
   ipcMain.handle('shell:showInFolder', (_, filePath) => {

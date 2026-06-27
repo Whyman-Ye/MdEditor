@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('desktopAPI', {
   openFolder: () => ipcRenderer.invoke('file:openFolder'),
   readFileByPath: (filePath) => ipcRenderer.invoke('file:readPath', filePath),
   saveFile: (payload) => ipcRenderer.invoke('file:save', payload),
+  exportPdf: (payload) => ipcRenderer.invoke('pdf:export', payload),
   getRecentFiles: () => ipcRenderer.invoke('file:getRecent'),
   openLaunchFile: () => ipcRenderer.invoke('file:openLaunch'),
   getHelpContent: () => ipcRenderer.invoke('help:getContent'),

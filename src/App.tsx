@@ -13,6 +13,7 @@ import { listPlugins, loadPlugins, type PluginDescriptor } from './plugins/plugi
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION || '0.0.0'
 type AppLanguage = 'zh-CN' | 'en-US'
+type PdfExportMode = 'native' | 'image'
 
 const chartGlobals = window as Window & {
   Chart?: typeof Chart
@@ -77,6 +78,9 @@ const i18n = {
     replaceCurrent: '替换当前',
     replaceAll: '全部替换',
     pdfSettings: '导出 PDF 参数',
+    pdfMode: '导出模式',
+    pdfModeNative: '原生文本 PDF（可搜索/复制）',
+    pdfModeImage: '截图 PDF（兼容优先）',
     pageSize: '页面大小',
     marginPx: '页边距(px)',
     scale: '缩放',
@@ -169,6 +173,9 @@ const i18n = {
     replaceCurrent: 'Replace Current',
     replaceAll: 'Replace All',
     pdfSettings: 'Export PDF Settings',
+    pdfMode: 'Export Mode',
+    pdfModeNative: 'Native Text PDF (searchable/selectable)',
+    pdfModeImage: 'Image PDF (compatibility first)',
     pageSize: 'Page Size',
     marginPx: 'Margin (px)',
     scale: 'Scale',
@@ -290,6 +297,7 @@ type MenuCommandPayload = {
 }
 
 type PdfOptions = {
+  mode: PdfExportMode
   pageSize: 'a4' | 'letter'
   margin: number
   fontScale: number
@@ -781,6 +789,7 @@ function App() {
   const [showOptionsDialog, setShowOptionsDialog] = useState(false)
   const [showPageSetupDialog, setShowPageSetupDialog] = useState(false)
   const [pdfOptions, setPdfOptions] = useState<PdfOptions>({
+    mode: 'native',
     pageSize: 'a4',
     margin: 16,
     fontScale: 1,
@@ -1303,7 +1312,90 @@ function App() {
     updateMarkdown(markdown.split(findText).join(replaceText))
   }
 
-  async function exportPdf(options = pdfOptions): Promise<void> {
+  function collectCurrentDocumentCssText(): string {
+    const chunks: string[] = []
+    for (const styleSheet of Array.from(document.styleSheets)) {
+      try {
+        if (!styleSheet.cssRules) {
+          continue
+        }
+        for (const rule of Array.from(styleSheet.cssRules)) {
+          chunks.push(rule.cssText)
+        }
+      } catch {
+        // Ignore inaccessible stylesheet rules and continue.
+      }
+    }
+    return chunks.join('\n')
+  }
+
+  async function serializePreviewHtmlForNativePdf(preview: HTMLDivElement): Promise<string> {
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    })
+    await new Promise<void>((resolve) => {
+      window.setTimeout(() => resolve(), 80)
+    })
+
+    const previewClone = preview.cloneNode(true) as HTMLDivElement
+    previewClone.style.overflow = 'visible'
+    previewClone.style.height = 'auto'
+    previewClone.style.maxHeight = 'none'
+    previewClone.style.border = 'none'
+    previewClone.classList.remove('preview-mini')
+
+    const sourceCanvases = Array.from(preview.querySelectorAll('canvas'))
+    const clonedCanvases = Array.from(previewClone.querySelectorAll('canvas'))
+    for (let index = 0; index < sourceCanvases.length; index += 1) {
+      const sourceCanvas = sourceCanvases[index]
+      const targetCanvas = clonedCanvases[index]
+      if (!sourceCanvas || !targetCanvas) {
+        continue
+      }
+      try {
+        const image = document.createElement('img')
+        image.src = sourceCanvas.toDataURL('image/png')
+        image.alt = 'chart'
+        image.className = targetCanvas.className
+        const width = sourceCanvas.clientWidth || sourceCanvas.width
+        const height = sourceCanvas.clientHeight || sourceCanvas.height
+        if (width > 0) {
+          image.style.width = `${width}px`
+        }
+        if (height > 0) {
+          image.style.height = `${height}px`
+        }
+        image.style.maxWidth = '100%'
+        image.style.display = 'block'
+        targetCanvas.replaceWith(image)
+      } catch {
+        // Keep original canvas when bitmap extraction is unavailable.
+      }
+    }
+
+    return previewClone.innerHTML
+  }
+
+  async function exportPdfAsNativeText(options: PdfOptions): Promise<void> {
+    if (!window.desktopAPI || !previewRef.current) {
+      await exportPdfAsImage(options)
+      return
+    }
+    const html = await serializePreviewHtmlForNativePdf(previewRef.current)
+    if (!html.trim()) {
+      return
+    }
+    await window.desktopAPI.exportPdf({
+      html,
+      cssText: collectCurrentDocumentCssText(),
+      outputName: currentFileName.replace(/\.md$/i, '.pdf'),
+      pageSize: options.pageSize,
+      margin: options.margin,
+      openAfterExport: options.openAfterExport,
+    })
+  }
+
+  async function exportPdfAsImage(options = pdfOptions): Promise<void> {
     const preview = previewRef.current
     if (!preview) {
       return
@@ -1476,6 +1568,14 @@ function App() {
     if (options.openAfterExport && window.desktopAPI && currentFilePath) {
       window.desktopAPI.showInFolder(currentFilePath).catch(() => undefined)
     }
+  }
+
+  async function exportPdf(options = pdfOptions): Promise<void> {
+    if (options.mode === 'native' && window.desktopAPI) {
+      await exportPdfAsNativeText(options)
+      return
+    }
+    await exportPdfAsImage(options)
   }
 
   function handleNewFile(): void {
@@ -1981,6 +2081,21 @@ function App() {
         <div className="modal-backdrop" onClick={() => setShowPdfDialog(false)}>
           <div className="modal-card" onClick={(event) => event.stopPropagation()}>
             <h3>{locale.pdfSettings}</h3>
+            <label>
+              {locale.pdfMode}
+              <select
+                value={pdfOptions.mode}
+                onChange={(event) =>
+                  setPdfOptions((previous) => ({
+                    ...previous,
+                    mode: event.target.value as PdfOptions['mode'],
+                  }))
+                }
+              >
+                <option value="native" disabled={!isDesktopClient}>{locale.pdfModeNative}</option>
+                <option value="image">{locale.pdfModeImage}</option>
+              </select>
+            </label>
             <label>
               {locale.pageSize}
               <select
